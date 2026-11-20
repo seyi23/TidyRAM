@@ -1,0 +1,399 @@
+# TidyRAM
+
+Eine schlanke Menüleisten-App für macOS, die den Arbeitsspeicher übersichtlich anzeigt und ungenutzten RAM (den Datei-Cache) sicher freigibt, ohne laufende Programme oder deren Daten anzutasten.
+
+<p align="center">
+  <img src="docs/screenshot.png" alt="TidyRAM in der Menüleiste" width="320">
+</p>
+
+> **Kostenlos und Open Source.** TidyRAM steht unter der MIT-Lizenz. Du darfst die App kostenlos nutzen, den Quellcode lesen, ändern und weitergeben. Es gibt keine Werbung, kein Tracking, keine Netzwerkzugriffe und keine In-App-Käufe.
+
+- **Plattform:** macOS 14 (Sonoma) oder neuer, getestet auf macOS 27.2, Apple Silicon
+- **Sprache:** Swift 6 / SwiftUI, keine externen Abhängigkeiten
+- **Version:** 1.1.0
+- **Lizenz:** MIT (kostenlos, Open Source)
+
+---
+
+## Inhalt
+
+1. [Funktionen](#funktionen)
+2. [Was die App macht und was nicht](#was-die-app-macht-und-was-nicht)
+3. [Installation](#installation)
+4. [Bedienung](#bedienung)
+5. [Die Speicherbereiche erklärt](#die-speicherbereiche-erklärt)
+6. [Wie das Freigeben funktioniert](#wie-das-freigeben-funktioniert)
+7. [Passwortabfrage: Problem und Workaround](#passwortabfrage-problem-und-workaround)
+8. [Speicher im Terminal ansehen](#speicher-im-terminal-ansehen)
+9. [Projektstruktur](#projektstruktur)
+10. [Technische Details](#technische-details)
+11. [Deinstallation](#deinstallation)
+12. [Bekannte Einschränkungen](#bekannte-einschränkungen)
+13. [Dokumentation als PDF erzeugen](#dokumentation-als-pdf-erzeugen)
+14. [Mitmachen](#mitmachen)
+15. [Lizenz](#lizenz)
+
+---
+
+## Funktionen
+
+| Funktion | Beschreibung |
+|---|---|
+| **Live-Anzeige in der Menüleiste** | Chip-Symbol mit dem belegten Speicher in Prozent, alle 2 Sekunden aktualisiert. |
+| **Speicherübersicht** | Farbiger Balken und Legende: Apps, Reserviert, Komprimiert, Datei-Cache, Frei und Swap. Gleiche Werte wie in der Aktivitätsanzeige. |
+| **Speicherdruck** | Badge *Normal*, *Erhöht* oder *Kritisch*, direkt vom macOS-Kernel. |
+| **Ungenutzten RAM freigeben** | Leert den Datei-Cache mit Apples `purge` und zeigt an, wie viel frei wurde. |
+| **Ohne Passwort (optional)** | Mit einer eng begrenzten sudo-Regel läuft das Freigeben ohne Passwortdialog. Die App zeigt an, ob das aktiv ist. |
+| **Größte Apps** | Die 8 Programme mit dem größten Speicherverbrauch. Mit ✕ beendest du sie regulär (wie ⌘Q). |
+| **Bei Anmeldung starten** | Autostart über die offizielle macOS-API (`SMAppService`). |
+
+---
+
+## Was die App macht und was nicht
+
+**macOS verwaltet den Arbeitsspeicher selbst, und das sehr gut.** Freier RAM ist verschwendeter RAM, deshalb füllt macOS ihn absichtlich mit einem Datei-Cache. Fast leerer „freier“ Speicher ist also **normal und kein Problem**.
+
+TidyRAM ist bewusst **vorsichtig** gebaut:
+
+| ✅ Die App … | ❌ Die App … |
+|---|---|
+| leert nur den Datei-Cache, also Daten, die ohnehin auf der SSD liegen | beendet keine Programme ungefragt |
+| beendet Apps nur auf Klick und regulär (die App kann nach dem Sichern fragen) | erzwingt kein Beenden (kein `kill -9`, kein `forceTerminate`) |
+| zeigt den echten Speicherdruck an | manipuliert keinen Speicher fremder Prozesse |
+| führt mit Admin-Rechten nur einen einzigen, fest eingetragenen Befehl aus | installiert keine Hintergrunddienste oder Kernel-Erweiterungen |
+
+**Wann hilft das Freigeben wirklich?** Vor allem kurz vor einer speicherhungrigen Aufgabe (Video-Export, VM, große Builds), oder um zu sehen, wie viel RAM wirklich gebraucht wird.
+
+**Wann hilft es nicht?** Steht der Speicherdruck dauerhaft auf *Erhöht* und sind viele GB komprimiert oder im Swap, brauchen deine Programme mehr RAM, als der Mac hat. Dann hilft nur, große Programme zu schließen, zum Beispiel einen zweiten Browser. Dafür ist die Liste *Größte Apps* gedacht.
+
+---
+
+## Installation
+
+### Voraussetzungen
+
+- macOS 14 oder neuer
+- Xcode oder die Xcode Command Line Tools:
+  ```bash
+  xcode-select --install
+  ```
+
+### Bauen und installieren (empfohlen)
+
+```bash
+git clone <repo-url> TidyRAM
+```
+```bash
+cd TidyRAM
+```
+```bash
+./scripts/install.sh
+```
+
+Das Skript baut die App, kopiert sie nach `/Applications` und startet sie. Danach erscheint das Chip-Symbol oben rechts in der Menüleiste.
+
+### Nur bauen
+
+```bash
+./build.sh
+```
+
+Das Ergebnis liegt in `build/TidyRAM.app`. Du kannst es per Doppelklick starten oder von Hand in den Ordner „Programme“ ziehen.
+
+### Hinweis zum ersten Start
+
+Die App ist nur lokal signiert (ad hoc) und nicht von Apple notarisiert. Selbst gebaut startet sie ohne Rückfrage. Lädt jemand eine fertige `.app` aus dem Internet herunter, blockiert Gatekeeper den Start. Dann hilft: Rechtsklick → *Öffnen*, oder *Systemeinstellungen → Datenschutz & Sicherheit → Dennoch öffnen*.
+
+---
+
+## Bedienung
+
+Klicke auf das **Chip-Symbol mit der Prozentzahl** in der Menüleiste. Es öffnet sich ein Fenster mit:
+
+1. **Kopf:** belegter Speicher („13,06 GB von 16 GB belegt“) und rechts das Badge mit dem Speicherdruck.
+2. **Balken und Legende:** die Aufteilung des RAM, siehe [Speicherbereiche](#die-speicherbereiche-erklärt).
+3. **„Ungenutzten RAM freigeben“:** leert den Datei-Cache. Darunter stehen
+    - das Ergebnis, z. B. *„1,9 GB freigegeben“*,
+    - der Passwort-Status: 🔒 *Fragt nach Passwort* oder ✔︎ *Ohne Passwort eingerichtet*.
+4. **Größte Apps:** Klick auf ✕ beendet die App regulär. Ungesicherte Dokumente lösen den normalen „Sichern?“-Dialog der App aus. Finder, Dock und andere Systemprozesse werden nie angeboten.
+5. **Fußzeile:** *Bei Anmeldung starten* und *Beenden*.
+
+---
+
+## Die Speicherbereiche erklärt
+
+| Bereich | Bedeutung | Freigebbar? |
+|---|---|---|
+| **Apps** | Speicher, den Programme selbst angelegt haben (Dokumente, Tabs, Daten) | Nur durch Beenden der App |
+| **Reserviert** (wired) | Vom macOS-Kernel fest belegt, kann nie ausgelagert werden | Nein |
+| **Komprimiert** | Platz, den der Speicherkompressor belegt. macOS presst selten genutzte App-Daten zusammen, statt sie auf die SSD auszulagern | Nur durch Beenden von Apps |
+| **Datei-Cache** | Kopien von Dateien und Programmcode, die auf der SSD liegen | **Ja**, das macht der Button |
+| **Frei** | Komplett unbenutzt | – |
+| **Swap** | Auf die SSD ausgelagerter Speicher (nicht im RAM) | Nur durch Beenden von Apps |
+
+**„Belegt“** in der App = Apps + Reserviert + Komprimiert. Das ist dieselbe Definition wie *Benutzter Speicher* in der Aktivitätsanzeige. Der Datei-Cache zählt nicht dazu, weil macOS ihn jederzeit sofort freigeben kann.
+
+**Speicherdruck:** Das ist der wichtigste Wert. Er sagt, ob macOS wirklich Mühe hat, genug Speicher bereitzustellen:
+
+- 🟢 **Normal:** alles in Ordnung, egal wie wenig „frei“ ist
+- 🟡 **Erhöht:** macOS komprimiert und lagert aus, der Mac kann langsamer werden
+- 🔴 **Kritisch:** akuter Mangel, Programme schließen
+
+---
+
+## Wie das Freigeben funktioniert
+
+Der Button führt `/usr/sbin/purge` aus. Das ist ein Werkzeug, das Apple mit jedem macOS ausliefert.
+
+**Was purge tut:** Es verwirft alle Seiten im Datei-Cache, also Speicher, dessen Inhalt eine identische Kopie auf der SSD hat (gelesene Dateien, Programmcode, Bibliotheken).
+
+**Warum das sicher ist:**
+
+- Daten, die Programme selbst erzeugt haben, liegen im Bereich *Apps* oder *Komprimiert*. Die fasst purge **nicht** an.
+- Es wird kein Prozess beendet oder verändert.
+- Schlimmster Fall: Eine Datei wird beim nächsten Zugriff einmal neu von der SSD geladen. Das ist kurz etwas langsamer und danach wieder im Cache.
+
+**Warum Admin-Rechte?** purge läuft nur als `root`. Die App versucht deshalb nacheinander:
+
+1. `sudo -n /usr/sbin/purge`: klappt ohne Passwort, **wenn** die sudo-Regel eingerichtet ist (nächster Abschnitt). `-n` heißt, sudo fragt nie nach, sondern scheitert sofort.
+2. Sonst: AppleScript `do shell script … with administrator privileges`. macOS zeigt dann seinen eigenen Passwortdialog.
+
+Der Pfad `/usr/sbin/purge` steht **fest im Code** ([`Sources/Cleaner.swift`](Sources/Cleaner.swift)). Mit Admin-Rechten wird nie etwas anderes ausgeführt.
+
+---
+
+## Passwortabfrage: Problem und Workaround
+
+### Das Problem
+
+Ohne weitere Einrichtung zeigt macOS bei **jedem** Klick auf „Ungenutzten RAM freigeben“ diesen Dialog:
+
+> **Adminzugriff für ein Skript erlauben, das von „TidyRAM“ gestartet wurde?**
+> Damit erhält das Skript Zugriff auf deine Daten, Dateien und Einstellungen … Apple konnte nicht bestätigen, dass das Skript frei von Malware ist …
+
+**Warum der Text so bedrohlich klingt:**
+
+- Der Teil *„Zugriff auf deine Daten, Dateien und Einstellungen“* ist ein **Standardtext**. macOS zeigt ihn bei jedem Skript, das Admin-Rechte anfragt, egal was es tut.
+- *„Apple konnte nicht bestätigen …“* erscheint, weil die App nur ad hoc signiert und **nicht von Apple notarisiert** ist. Das betrifft jede selbst gebaute App. Es bedeutet **nicht**, dass Schadsoftware gefunden wurde.
+- Ab macOS 26/27 ersetzt das System den eigenen Dialogtext der App durch diese Warnung.
+
+„Zugriff erlauben“ ist hier unbedenklich, weil nur `/usr/sbin/purge` ausgeführt wird. Auf Dauer nervt es aber.
+
+### Die Lösung: eine sudo-Regel nur für purge
+
+Wir erlauben **genau einen Befehl**, nämlich `/usr/sbin/purge`, ohne Passwort, und **nur für deinen Benutzer**. Alle anderen sudo-Befehle verlangen weiterhin dein Passwort.
+
+Die Regel ist eine einzige Zeile in `/etc/sudoers.d/tidyram`:
+
+```
+<dein-benutzer> ALL=(root) NOPASSWD: /usr/sbin/purge
+```
+
+#### Einrichten: Variante A, mit Skript (empfohlen)
+
+```bash
+./scripts/enable-passwordless.sh
+```
+
+#### Einrichten: Variante B, ein einzelner Befehl
+
+```bash
+echo "$(whoami) ALL=(root) NOPASSWD: /usr/sbin/purge" > /tmp/tidyram && visudo -cf /tmp/tidyram && sudo install -m 440 -o root -g wheel /tmp/tidyram /etc/sudoers.d/tidyram && rm /tmp/tidyram
+```
+
+Was dieser Befehl Schritt für Schritt tut:
+
+| Schritt | Zweck |
+|---|---|
+| `echo "$(whoami) ALL=(root) NOPASSWD: /usr/sbin/purge" > /tmp/tidyram` | Schreibt die Regel mit deinem Benutzernamen in eine temporäre Datei |
+| `visudo -cf /tmp/tidyram` | **Prüft die Syntax.** Eine fehlerhafte Datei in `/etc/sudoers.d` könnte sudo komplett lahmlegen. Bei einem Fehler bricht die Kette hier ab |
+| `sudo install -m 440 -o root -g wheel …` | Kopiert die Datei mit den Rechten, die sudo verlangt (Besitzer root, nur lesbar). **Hier gibst du ein letztes Mal dein Passwort ein** |
+| `rm /tmp/tidyram` | Räumt die temporäre Datei auf |
+
+Die einzige Ausgabe ist `/tmp/tidyram: parsed OK`. Das ist richtig so, die übrigen Schritte arbeiten ohne Ausgabe.
+
+#### Prüfen
+
+```bash
+sudo -n -l /usr/sbin/purge
+```
+
+| Ausgabe | Bedeutung |
+|---|---|
+| `/usr/sbin/purge` | ✅ Regel aktiv, purge läuft ohne Passwort |
+| `sudo: a password is required` | ❌ Regel nicht aktiv |
+
+In TidyRAM wechselt die Anzeige unter dem Button nach spätestens einer Minute zu ✔︎ *Ohne Passwort eingerichtet*, oder sofort nach einem Neustart der App.
+
+#### Rückgängig machen
+
+```bash
+./scripts/disable-passwordless.sh
+```
+
+oder direkt:
+
+```bash
+sudo rm /etc/sudoers.d/tidyram
+```
+
+Die App funktioniert danach weiter und zeigt beim Freigeben wieder den Passwortdialog.
+
+#### Sicherheitsabwägung
+
+| Aspekt | Bewertung |
+|---|---|
+| Was ist ohne Passwort erlaubt? | Ausschließlich `/usr/sbin/purge`, ohne Argumente, als root |
+| Wer darf das? | Nur dein Benutzerkonto |
+| Was könnte ein bösartiges Programm unter deinem Konto damit anrichten? | Den Datei-Cache leeren. Das kostet kurz etwas Tempo, mehr nicht |
+| Kann man darüber andere Befehle als root ausführen? | Nein. sudo erlaubt nur genau diesen Pfad, und `/usr/sbin` ist durch den System-Integritätsschutz (SIP) schreibgeschützt |
+
+#### Fehlerbehebung
+
+| Symptom | Ursache und Lösung |
+|---|---|
+| Nur `parsed OK`, aber `sudo -n -l` meldet weiterhin „password is required“ | Der `sudo install`-Schritt wurde nicht ausgeführt (z. B. Passworteingabe abgebrochen). Befehl erneut im Terminal ausführen und das Passwort eingeben |
+| `visudo` meldet einen Syntaxfehler | Nichts wurde installiert. Prüfe, ob `whoami` deinen Kurznamen ausgibt (ohne Leerzeichen) |
+| App zeigt weiterhin „Fragt nach Passwort“ | Bis zu 60 s warten oder die App über *Beenden* schließen und neu öffnen |
+| `sudo` funktioniert gar nicht mehr | Sehr unwahrscheinlich dank `visudo -c`. Falls doch: im Finder `/etc/sudoers.d/tidyram` löschen (⌘⇧G → `/etc/sudoers.d`), oder neu starten und im macOS-Wiederherstellungsmodus löschen |
+
+### Alternativen
+
+| Lösung | Vorteil | Nachteil |
+|---|---|---|
+| **Passwort jedes Mal eingeben** | Keine Systemänderung | Nervt, Warndialog bei jedem Klick |
+| **sudo-Regel (oben)** | Kein Dialog mehr, eng begrenzt, jederzeit rückgängig | Einmalige Einrichtung im Terminal |
+| **Signierter Hilfsdienst** (`SMAppService.daemon`) | Kein Dialog, keine Warnung, „offizieller“ Weg | Erfordert ein Apple-Developer-Konto (99 €/Jahr), Developer-ID-Signatur und Notarisierung |
+
+---
+
+## Speicher im Terminal ansehen
+
+macOS hat kein `free` wie Linux. Diese Befehle kommen dem am nächsten:
+
+| Befehl | Zeigt |
+|---|---|
+| `top -l 1 \| grep PhysMem` | Kurzüberblick: benutzt, reserviert (wired), Kompressor, unbenutzt |
+| `vm_stat` | Alle Zähler in Seiten (16 KB auf Apple Silicon, 4 KB auf Intel) |
+| `memory_pressure` | Speicherdruck und „System-wide memory free percentage“ |
+| `sysctl vm.swapusage` | Swap-Nutzung |
+| `sysctl -n hw.memsize` | Eingebauter RAM in Bytes |
+| `top -o mem` | Prozesse nach Speicherverbrauch sortiert (wie `htop`) |
+
+### So passen Terminal und App zusammen
+
+| App | `vm_stat`-Zeile | Umrechnung |
+|---|---|---|
+| Komprimiert | `Pages occupied by compressor` | × 16 KB |
+| Frei | `Pages free` | × 16 KB |
+| Apps | `Anonymous pages` − `Pages purgeable` | × 16 KB |
+| Datei-Cache | `File-backed pages` + `Pages purgeable` | × 16 KB |
+| Reserviert | `Pages wired down` | × 16 KB |
+| Swap | `sysctl vm.swapusage` → `used` | direkt |
+
+**Warum zeigt `top` „15G used“, die App aber „13 GB belegt“?** `top` zählt alles außer „unbenutzt“, also auch den Datei-Cache. Die App zählt wie die Aktivitätsanzeige nur Apps + Reserviert + Komprimiert.
+
+**Warum sagt `memory_pressure` „41 % frei“, obwohl nur 80 MB frei sind?** Diese Zahl ist eine Schätzung des Kernels, wie viel er bei Bedarf beschaffen könnte, einschließlich Datei-Cache und inaktiver Seiten.
+
+Kleine Werte schwanken sekündlich. Abweichungen von ein paar hundert MB zwischen zwei Messungen sind normal.
+
+### Bonus: eine `free`-Funktion für die zsh
+
+In `~/.zshrc` einfügen:
+
+```bash
+free() { vm_stat | awk -v total=$(sysctl -n hw.memsize) '/page size of/{ps=$8} /Pages free/{f=$3} /Pages active/{a=$3} /Pages inactive/{i=$3} /Pages wired/{w=$4} /occupied by compressor/{c=$5} END{g=1024^3; printf "Gesamt: %.1f GB\nAktiv: %.1f GB\nInaktiv: %.1f GB\nReserviert: %.1f GB\nKomprimiert: %.1f GB\nFrei: %.1f GB\n", total/g, a*ps/g, i*ps/g, w*ps/g, c*ps/g, f*ps/g}'; sysctl -n vm.swapusage; }
+```
+
+---
+
+## Projektstruktur
+
+```
+TidyRAM/
+├── Sources/
+│   ├── TidyRAMApp.swift       Einstiegspunkt, Menüleisten-Symbol
+│   ├── ContentView.swift      Oberfläche (Balken, Legende, Button, App-Liste)
+│   ├── MemoryMonitor.swift    Datenmodell: aktualisiert Werte, löst Aktionen aus
+│   ├── MemoryStats.swift      Liest den RAM beim Kernel aus (nur lesend)
+│   └── Cleaner.swift          Führt purge aus (sudo -n oder Passwortdialog)
+├── scripts/
+│   ├── install.sh             Bauen + nach /Applications installieren + starten
+│   ├── enable-passwordless.sh sudo-Regel für purge einrichten
+│   ├── disable-passwordless.sh sudo-Regel entfernen
+│   ├── uninstall.sh           App und sudo-Regel entfernen
+│   └── make-pdf.sh            README.md → docs/TidyRAM.pdf
+├── docs/
+│   ├── screenshot.png
+│   └── TidyRAM.pdf            diese Dokumentation als PDF
+├── build.sh                   Kompiliert und erzeugt build/TidyRAM.app
+├── README.md
+├── LICENSE
+└── .gitignore
+```
+
+---
+
+## Technische Details
+
+| Thema | Umsetzung |
+|---|---|
+| Oberfläche | SwiftUI `MenuBarExtra` mit `.window`-Stil, `LSUIElement` (kein Dock-Symbol) |
+| Datenfluss | `@Observable` + `@MainActor`-Modell, Aktualisierung alle 2 s per `Task`-Schleife |
+| Speicherwerte | Mach-API `host_statistics64(HOST_VM_INFO64)` |
+| Speicherdruck | `sysctl kern.memorystatus_vm_pressure_level` (1/2/4) |
+| Swap | `sysctl vm.swapusage` |
+| App-Verbrauch | `proc_pid_rusage(RUSAGE_INFO_V4).ri_phys_footprint` (wie die Aktivitätsanzeige) |
+| Apps beenden | `NSRunningApplication.terminate()`, regulär, nie erzwungen |
+| Freigeben | `/usr/sbin/purge` über `sudo -n`, Fallback `osascript … with administrator privileges` |
+| Autostart | `SMAppService.mainApp` |
+| Nebenläufigkeit | Swift-6-Sprachmodus (strikte Datenrennen-Prüfung). Externe Prozesse laufen in `Task.detached`, damit die Oberfläche nie blockiert |
+| Build | Direkt mit `swiftc`, ohne Xcode-Projekt, ad-hoc signiert |
+
+---
+
+## Deinstallation
+
+```bash
+./scripts/uninstall.sh
+```
+
+Das Skript beendet die App, löscht `/Applications/TidyRAM.app` und entfernt die sudo-Regel (falls vorhanden). Schalte vorher in der App *Bei Anmeldung starten* aus, oder entferne den Eintrag unter *Systemeinstellungen → Allgemein → Anmeldeobjekte*.
+
+---
+
+## Bekannte Einschränkungen
+
+- **Browser-Verbrauch zu niedrig:** In *Größte Apps* wird nur der Hauptprozess gezählt. Safari, Firefox und Chrome verteilen Tabs auf viele Hilfsprozesse, ihr echter Verbrauch ist höher.
+- **Wirkung ist vorübergehend:** macOS füllt den Datei-Cache nach dem Freigeben wieder, und das ist so gewollt.
+- **Nicht notarisiert:** Deshalb die Warnung im Passwortdialog, siehe [oben](#passwortabfrage-problem-und-workaround).
+- **Nach einem neuen Build** musst du die App erneut nach `/Applications` kopieren (`./scripts/install.sh` erledigt das).
+
+---
+
+## Dokumentation als PDF erzeugen
+
+```bash
+./scripts/make-pdf.sh
+```
+
+Erzeugt `docs/TidyRAM.pdf` aus dieser README. Benötigt Google Chrome und Python 3. Das Skript legt beim ersten Lauf eine lokale Umgebung `.venv/` mit dem Paket `markdown` an.
+
+---
+
+## Mitmachen
+
+Fehlermeldungen, Ideen und Pull Requests sind willkommen.
+
+1. Repository forken und einen Branch anlegen
+2. Änderungen machen. Der Code ist ausführlich kommentiert, der Einstieg ist [`Sources/TidyRAMApp.swift`](Sources/TidyRAMApp.swift)
+3. Mit `./build.sh` bauen und die App testen
+4. Pull Request öffnen und kurz beschreiben, was sich ändert und warum
+
+Grundsatz für alle Änderungen: **Nichts darf Programme beschädigen oder Daten gefährden.** Kein erzwungenes Beenden, kein Eingriff in fremde Prozesse, mit Admin-Rechten nur fest eingetragene Apple-Werkzeuge.
+
+---
+
+## Lizenz
+
+TidyRAM ist **kostenlos und Open Source** unter der [MIT-Lizenz](LICENSE). Du darfst die App nutzen, kopieren, verändern und weitergeben, auch kommerziell, solange der Lizenzhinweis erhalten bleibt. Die Software wird ohne Gewähr bereitgestellt.

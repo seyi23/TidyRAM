@@ -1,0 +1,15 @@
+# Build-Ergebnis (wird mit ./build.sh erzeugt)
+build/
+
+# macOS
+.DS_Store
+
+# Xcode / SwiftPM (falls später ein Projekt angelegt wird)
+*.xcodeproj/xcuserdata/
+*.xcworkspace/xcuserdata/
+DerivedData/
+.build/
+.swiftpm/
+
+# Python-Umgebung für scripts/make-pdf.sh
+.venv/
