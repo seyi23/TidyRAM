@@ -7,6 +7,7 @@
 [![Build](https://github.com/seyi23/TidyRAM/actions/workflows/build.yml/badge.svg)](https://github.com/seyi23/TidyRAM/actions/workflows/build.yml)
 [![Release](https://img.shields.io/github/v/release/seyi23/TidyRAM)](https://github.com/seyi23/TidyRAM/releases/latest)
 [![Lizenz: MIT](https://img.shields.io/badge/Lizenz-MIT-green.svg)](LICENSE)
+[![Vibe-coded mit Claude](https://img.shields.io/badge/vibe--coded%20mit-Claude-D97757.svg)](#entstehung-vibe-coding-mit-claude)
 
 Eine schlanke Menüleisten-App für macOS, die den Arbeitsspeicher übersichtlich anzeigt und ungenutzten RAM (den Datei-Cache) sicher freigibt, ohne laufende Programme oder deren Daten anzutasten.
 
@@ -15,6 +16,8 @@ Eine schlanke Menüleisten-App für macOS, die den Arbeitsspeicher übersichtlic
 </p>
 
 > **Kostenlos und Open Source.** TidyRAM steht unter der MIT-Lizenz. Du darfst die App kostenlos nutzen, den Quellcode lesen, ändern und weitergeben. Es gibt keine Werbung, kein Tracking, keine Netzwerkzugriffe und keine In-App-Käufe.
+
+> 🤖 **Vibe Coding mit Claude.** TidyRAM ist komplett per *Vibe Coding* entstanden: Ich habe beschrieben, was die App können soll, und [Claude](https://claude.com/claude-code) von Anthropic hat den Code, die Skripte und diese Dokumentation geschrieben. Mehr dazu unter [Entstehung](#entstehung-vibe-coding-mit-claude).
 
 - **Plattform:** macOS 14 (Sonoma) oder neuer, Apple Silicon und Intel (getestet auf macOS 27.2, Apple Silicon)
 - **Sprache:** Swift 6 / SwiftUI, keine externen Abhängigkeiten
@@ -39,8 +42,9 @@ Eine schlanke Menüleisten-App für macOS, die den Arbeitsspeicher übersichtlic
 11. [Deinstallation](#deinstallation)
 12. [Bekannte Einschränkungen](#bekannte-einschränkungen)
 13. [Dokumentation als PDF erzeugen](#dokumentation-als-pdf-erzeugen)
-14. [Mitmachen](#mitmachen)
-15. [Lizenz](#lizenz)
+14. [Entstehung: Vibe Coding mit Claude](#entstehung-vibe-coding-mit-claude)
+15. [Mitmachen](#mitmachen)
+16. [Lizenz](#lizenz)
 
 ---
 
@@ -414,6 +418,27 @@ Das Skript beendet die App, löscht `/Applications/TidyRAM.app` und entfernt die
 ```
 
 Erzeugt `docs/TidyRAM.pdf` aus dieser README. Benötigt Google Chrome und Python 3. Das Skript legt beim ersten Lauf eine lokale Umgebung `.venv/` mit dem Paket `markdown` an.
+
+---
+
+## Entstehung: Vibe Coding mit Claude
+
+TidyRAM ist ein **Vibe-Coding-Projekt**. Ich habe keinen Code von Hand geschrieben, sondern im Gespräch mit **Claude** (Anthropic, Modell Claude Opus 5.5, in der Claude-Desktop-App mit Claude Code) beschrieben, was ich möchte. Claude hat daraus Schritt für Schritt die App gebaut.
+
+**So lief es ab:**
+
+1. **Idee:** „Eine App für macOS, die ungenutzten RAM freigibt, ohne wichtige Infos zu verlieren oder Programme zu beschädigen.“
+2. **Umsetzung durch Claude:** Swift/SwiftUI-Code, Build-Skript, App-Symbol, GitHub-Workflows, README und PDF.
+3. **Testen auf dem echten Mac:** Speicherwerte mit `vm_stat`, `top` und `memory_pressure` abgeglichen, Freigeben ausprobiert, Screenshots geprüft.
+4. **Nachschärfen im Gespräch:** zum Beispiel der Workaround für die Passwortabfrage, die richtige Zählung von Browser-Tabs, ein neuer Name und Open Source.
+
+**Was das für dich bedeutet:**
+
+- Der Code ist **ausführlich kommentiert**, damit jeder nachvollziehen kann, was er tut. Gerade bei einem Werkzeug mit Admin-Rechten lohnt sich ein eigener Blick, vor allem in [`Sources/Cleaner.swift`](Sources/Cleaner.swift).
+- Die Sicherheitsgrundsätze (nur `purge`, kein erzwungenes Beenden, nur lesender Zugriff auf andere Prozesse) wurden bewusst so vorgegeben und sind im Code und in dieser README dokumentiert.
+- Die Commits sind mit `Co-Authored-By: Claude` gekennzeichnet.
+
+Fehler gefunden oder eine Idee? [Issue öffnen](https://github.com/seyi23/TidyRAM/issues). Gern auch mit Vibe Coding gelöst.
 
 ---
 
