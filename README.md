@@ -24,7 +24,7 @@ Eine schlanke Menüleisten-App für macOS, die den Arbeitsspeicher übersichtlic
 - **Plattform:** macOS 14 (Sonoma) oder neuer, Apple Silicon und Intel (getestet auf macOS 27.2, Apple Silicon)
 - **Sprachen der App:** Deutsch und Englisch (folgt der Systemsprache)
 - **Technik:** Swift 6 / SwiftUI, keine externen Abhängigkeiten
-- **Version:** 1.3.0 ([Änderungen](CHANGELOG.md))
+- **Version:** 1.4.0 ([Änderungen](CHANGELOG.md))
 - **Download:** [neueste Version](https://github.com/seyi23/TidyRAM/releases/latest) oder per [Homebrew](#variante-2-homebrew) ([Tap](https://github.com/seyi23/homebrew-tidyram))
 - **Lizenz:** MIT (kostenlos, Open Source)
 
@@ -37,18 +37,19 @@ Eine schlanke Menüleisten-App für macOS, die den Arbeitsspeicher übersichtlic
 3. [Installation](#installation)
 4. [Bedienung](#bedienung)
 5. [Einstellungen](#einstellungen)
-6. [Die Speicherbereiche erklärt](#die-speicherbereiche-erklärt)
-7. [Wie das Freigeben funktioniert](#wie-das-freigeben-funktioniert)
-8. [Passwortabfrage: Problem und Workaround](#passwortabfrage-problem-und-workaround)
-9. [Speicher im Terminal ansehen](#speicher-im-terminal-ansehen)
-10. [Projektstruktur](#projektstruktur)
-11. [Technische Details](#technische-details)
-12. [Deinstallation](#deinstallation)
-13. [Bekannte Einschränkungen](#bekannte-einschränkungen)
-14. [Dokumentation als PDF erzeugen](#dokumentation-als-pdf-erzeugen)
-15. [Entstehung: Vibe Coding mit Claude](#entstehung-vibe-coding-mit-claude)
-16. [Mitmachen](#mitmachen)
-17. [Lizenz](#lizenz)
+6. [Steuerung per Link und Terminal](#steuerung-per-link-und-terminal)
+7. [Die Speicherbereiche erklärt](#die-speicherbereiche-erklärt)
+8. [Wie das Freigeben funktioniert](#wie-das-freigeben-funktioniert)
+9. [Passwortabfrage: Problem und Workaround](#passwortabfrage-problem-und-workaround)
+10. [Speicher im Terminal ansehen](#speicher-im-terminal-ansehen)
+11. [Projektstruktur](#projektstruktur)
+12. [Technische Details](#technische-details)
+13. [Deinstallation](#deinstallation)
+14. [Bekannte Einschränkungen](#bekannte-einschränkungen)
+15. [Dokumentation als PDF erzeugen](#dokumentation-als-pdf-erzeugen)
+16. [Entstehung: Vibe Coding mit Claude](#entstehung-vibe-coding-mit-claude)
+17. [Mitmachen](#mitmachen)
+18. [Lizenz](#lizenz)
 
 ---
 
@@ -58,15 +59,19 @@ Eine schlanke Menüleisten-App für macOS, die den Arbeitsspeicher übersichtlic
 |---|---|
 | **Live-Anzeige in der Menüleiste** | Chip-Symbol mit belegtem Speicher in Prozent oder GB, einem Farbpunkt für den Speicherdruck oder nur dem Symbol. Alle 2 Sekunden aktualisiert. |
 | **Speicherübersicht** | Farbiger Balken und Legende: Apps, Reserviert, Komprimiert, Datei-Cache, Frei und Swap. Gleiche Werte wie in der Aktivitätsanzeige. |
+| **Details per Klick** | Jeder Bereich lässt sich aufklappen: Erklärung in einfachen Worten plus Detailwerte, z. B. Grafikspeicher (GPU) bei *Reserviert*, Kompressionsfaktor bei *Komprimiert*, ausgelagerte Datenmenge bei *Swap*. |
 | **Speicherdruck** | Badge *Normal*, *Erhöht* oder *Kritisch*, direkt vom macOS-Kernel. |
 | **Verlaufsgrafik** | Belegter Speicher der letzten Stunde. Zeiten mit erhöhtem oder kritischem Druck sind gelb bzw. rot hinterlegt. |
+| **„Wer frisst Speicher?“** | Der Verlauf merkt sich zu jedem Zeitpunkt die größte App. Mit der Maus über die Grafik fahren zeigt Uhrzeit, Belegung, Speicherdruck und Spitzenreiter. Darunter steht, wer bei Speicherdruck vorne lag. |
 | **Ungenutzten RAM freigeben** | Leert den Datei-Cache mit Apples `purge` und zeigt an, wie viel frei wurde. |
 | **Tastenkürzel ⌃⌥⌘R** | Gibt RAM von überall frei, ohne das Fenster zu öffnen. Das Ergebnis kommt als Mitteilung. |
+| **Steuerung per Link** | `open -g tidyram://free` gibt RAM aus dem Terminal, aus Kurzbefehlen, Raycast, Alfred oder Skripten frei. Siehe [Steuerung per Link und Terminal](#steuerung-per-link-und-terminal). |
 | **Mitteilungen** | Hinweis, wenn der Speicher knapp wird, mit der App, die gerade am meisten belegt. Höchstens alle 10 Minuten. |
 | **Automatisch freigeben (optional)** | Bei erhöhtem Speicherdruck den Cache selbst leeren, höchstens alle 15, 30 oder 60 Minuten. Standardmäßig aus. |
 | **Ohne Passwort (optional)** | Mit einer eng begrenzten sudo-Regel läuft das Freigeben ohne Passwortdialog. Die App zeigt an, ob das aktiv ist. |
 | **Größte Apps** | Die 8 Programme mit dem größten Speicherverbrauch, **inklusive aller Tabs und Hilfsprozesse** (Safari, Chrome, Firefox, Electron-Apps). Mit ✕ beendest du sie regulär (wie ⌘Q). |
 | **Einstellungsfenster** | Alle Optionen an einem Ort, siehe [Einstellungen](#einstellungen). |
+| **Aktualisierungs-Intervall** | Alle 2, 5 oder 10 Sekunden. Größere Abstände sparen auf MacBooks etwas Akku. |
 | **Bei Anmeldung starten** | Autostart über die offizielle macOS-API (`SMAppService`). |
 
 ---
@@ -168,8 +173,10 @@ Die App ist nur lokal signiert (ad hoc) und nicht von Apple notarisiert. Eine No
 Klicke auf das **Chip-Symbol** in der Menüleiste. Es öffnet sich ein Fenster mit:
 
 1. **Kopf:** belegter Speicher („11,1 GB von 16 GB belegt“), das Badge mit dem Speicherdruck und das **Zahnrad** für die [Einstellungen](#einstellungen).
-2. **Balken und Legende:** die Aufteilung des RAM, siehe [Speicherbereiche](#die-speicherbereiche-erklärt).
+2. **Balken und Legende:** die Aufteilung des RAM, siehe [Speicherbereiche](#die-speicherbereiche-erklärt). **Ein Klick auf einen Bereich** klappt eine Erklärung mit Detailwerten auf, ein zweiter Klick schließt sie wieder.
 3. **Verlauf (letzte Stunde):** belegter Speicher in Prozent. Gelb bzw. rot hinterlegt sind Zeiten mit erhöhtem oder kritischem Speicherdruck. Die Grafik füllt sich, solange TidyRAM läuft (alle 10 Sekunden ein Messpunkt).
+    - **Maus über die Grafik:** zeigt für diesen Zeitpunkt Uhrzeit, Belegung, Speicherdruck und die größte App („Wer frisst Speicher?“).
+    - **Darunter** steht, welche App bei Speicherdruck am häufigsten vorne lag, oder ohne Speicherdruck der größte Verbraucher der letzten Stunde.
 4. **„Ungenutzten RAM freigeben“:** leert den Datei-Cache. Darunter stehen
     - das Ergebnis, z. B. *„1,9 GB freigegeben“*,
     - der Passwort-Status: 🔒 *Fragt nach Passwort* oder ✔︎ *Ohne Passwort eingerichtet*.
@@ -177,6 +184,8 @@ Klicke auf das **Chip-Symbol** in der Menüleiste. Es öffnet sich ein Fenster m
 6. **Fußzeile:** *Bei Anmeldung starten* und *Beenden*.
 
 **Tastenkürzel:** Mit **⌃⌥⌘R** (Control + Option + Command + R) gibst du RAM von überall frei. Das Ergebnis erscheint als Mitteilung. Das Kürzel lässt sich in den Einstellungen abschalten.
+
+**Aus dem Terminal:** `open -g tidyram://free`, mehr dazu unter [Steuerung per Link und Terminal](#steuerung-per-link-und-terminal).
 
 ---
 
@@ -194,10 +203,59 @@ Erreichbar über das **Zahnrad** im TidyRAM-Fenster. Alle Änderungen gelten sof
 | **Mitteilungen** | *Nie*, *Bei kritischem Speicherdruck* (Standard) oder *Schon bei erhöhtem Speicherdruck*. Beim ersten Mal fragt macOS, ob TidyRAM Mitteilungen senden darf |
 | **Automatisch freigeben** | Aus (Standard) oder an, mit Mindestabstand 15, 30 oder 60 Minuten. **Nur verfügbar, wenn [Freigeben ohne Passwort](#passwortabfrage-problem-und-workaround) eingerichtet ist.** Sonst würde unvermittelt ein Passwortdialog erscheinen |
 | **Tastenkürzel** | ⌃⌥⌘R an (Standard) oder aus |
-| **Allgemein** | Bei Anmeldung starten |
+| **Steuerung per Link** | Zeigt den Terminal-Befehl `open -g tidyram://free` zum Kopieren |
+| **Allgemein** | Aktualisieren alle 2 (Standard), 5 oder 10 Sekunden. Bei Anmeldung starten |
 | **Über TidyRAM** | Version, Lizenz, Link zum Repository |
 
 Gespeichert werden die Einstellungen lokal in `~/Library/Preferences/local.tidyram.plist`.
+
+---
+
+## Steuerung per Link und Terminal
+
+TidyRAM meldet bei macOS das Link-Schema `tidyram://` an. Damit lässt sich die App von überall steuern.
+
+### Aus dem Terminal
+
+```bash
+open -g tidyram://free
+```
+
+- `-g` heißt: im Hintergrund, nichts springt nach vorn.
+- Läuft TidyRAM nicht, startet macOS die App automatisch.
+- Das Ergebnis (z. B. „1,6 GB freigegeben“) erscheint als Mitteilung.
+- Ohne [eingerichtete sudo-Regel](#passwortabfrage-problem-und-workaround) erscheint der Passwortdialog.
+
+**Noch kürzer** mit einem Alias in `~/.zshrc`:
+
+```bash
+alias ramfree='open -g tidyram://free'
+```
+
+**Ganz ohne TidyRAM** geht es mit Apples Werkzeug direkt. Mit eingerichteter sudo-Regel fragt das nicht nach dem Passwort:
+
+```bash
+sudo -n /usr/sbin/purge
+```
+
+### Kurzbefehle, Raycast, Alfred
+
+| Werkzeug | So geht's |
+|---|---|
+| **Kurzbefehle** (Shortcuts) | Neuer Kurzbefehl → Aktion **„URL öffnen“** → `tidyram://free`. Lässt sich auch per Siri, Tastenkürzel oder Automation auslösen |
+| **Raycast** | *Create Quicklink* → Link `tidyram://free`, Name z. B. „RAM freigeben“ |
+| **Alfred** | *Web Search* bzw. *Workflow* mit *Open URL* → `tidyram://free` |
+| **Skripte** | `open -g tidyram://free`, z. B. vor dem Start einer speicherhungrigen App: `open -g tidyram://free && sleep 2 && open -a "Final Cut Pro"` |
+
+### Fehlersuche
+
+TidyRAM schreibt jeden Link-Befehl und jede Freigabe ins macOS-Protokoll. So liest du mit:
+
+```bash
+/usr/bin/log stream --info --predicate 'subsystem == "local.tidyram"'
+```
+
+Den vollen Pfad `/usr/bin/log` brauchst du, weil `log` in der zsh ein eingebauter Befehl mit anderer Bedeutung ist.
 
 ---
 
@@ -206,11 +264,33 @@ Gespeichert werden die Einstellungen lokal in `~/Library/Preferences/local.tidyr
 | Bereich | Bedeutung | Freigebbar? |
 |---|---|---|
 | **Apps** | Speicher, den Programme selbst angelegt haben (Dokumente, Tabs, Daten) | Nur durch Beenden der App |
-| **Reserviert** (wired) | Vom macOS-Kernel fest belegt, kann nie ausgelagert werden | Nein |
+| **Reserviert** (wired) | Vom macOS-Kernel fest gesperrt, kann nie ausgelagert werden. Details siehe unten | Nein |
 | **Komprimiert** | Platz, den der Speicherkompressor belegt. macOS presst selten genutzte App-Daten zusammen, statt sie auf die SSD auszulagern | Nur durch Beenden von Apps |
 | **Datei-Cache** | Kopien von Dateien und Programmcode, die auf der SSD liegen | **Ja**, das macht der Button |
 | **Frei** | Komplett unbenutzt | – |
 | **Swap** | Auf die SSD ausgelagerter Speicher (nicht im RAM) | Nur durch Beenden von Apps |
+
+In der App zeigt **ein Klick auf einen Bereich** dieselbe Erklärung plus Detailwerte:
+
+| Bereich | Detailwerte in der App |
+|---|---|
+| Apps | Größte App und ihr Verbrauch |
+| Reserviert | Grafikspeicher (GPU), den die Grafik gerade nutzt |
+| Komprimiert | Wie viele App-Daten im Kompressor stecken, wie viel Platz das spart, Kompressionsfaktor |
+| Datei-Cache | Anteil, den Apps als „sofort verwerfbar“ (purgeable) markiert haben |
+| Frei | Eingebauter Arbeitsspeicher insgesamt |
+| Swap | Belegung der Swap-Dateien, seit dem Start ausgelagerte und zurückgeholte Datenmenge |
+
+### Was steckt in „Reserviert“?
+
+*Reserviert* (englisch *wired*, im Terminal `Pages wired down`) ist Speicher, den der macOS-Kernel fest im RAM hält. Er darf nie ausgelagert, komprimiert oder freigegeben werden. Dazu gehören:
+
+- der **Kernel selbst** und seine Datenstrukturen, z. B. Seitentabellen, Prozess- und Netzwerkverwaltung,
+- **Treiber** (Kernel-Erweiterungen),
+- auf Apple-Silicon-Macs vor allem **Grafikspeicher**: CPU und GPU teilen sich denselben RAM, und was die GPU gerade nutzt (Fenster, Videos, Spiele, Effekte, externe Monitore), muss fest stehen bleiben,
+- Speicher, den Programme ausdrücklich sperren, z. B. virtuelle Maschinen oder Audio-Software.
+
+Typisch sind 1,5 bis 3 GB. Deutlich mehr deutet meist auf viel Grafikarbeit hin (mehrere Monitore, Videoschnitt, Spiele) oder auf eine laufende VM. Den Grafikanteil zeigt TidyRAM beim Aufklappen an. Er stammt aus derselben Quelle wie `ioreg -c IOAccelerator` („In use system memory“).
 
 **„Belegt“** in der App = Apps + Reserviert + Komprimiert. Das ist dieselbe Definition wie *Benutzter Speicher* in der Aktivitätsanzeige. Der Datei-Cache zählt nicht dazu, weil macOS ihn jederzeit sofort freigeben kann.
 
@@ -401,7 +481,8 @@ TidyRAM/
 │   ├── MemoryStats.swift       Liest RAM und App-Verbrauch beim Kernel aus (nur lesend)
 │   ├── Cleaner.swift           Führt purge aus (sudo -n oder Passwortdialog)
 │   ├── Notifier.swift          macOS-Mitteilungen
-│   └── GlobalHotKey.swift      Tastenkürzel ⌃⌥⌘R
+│   ├── GlobalHotKey.swift      Tastenkürzel ⌃⌥⌘R
+│   └── URLCommands.swift       Steuerung per Link (tidyram://free)
 ├── Resources/
 │   ├── AppIcon.icns            App-Symbol (erzeugt von scripts/make-icon.swift)
 │   ├── de.lproj/               Deutsch (Entwicklungssprache)
@@ -439,7 +520,10 @@ TidyRAM/
 | Speicherdruck | `sysctl kern.memorystatus_vm_pressure_level` (1/2/4) |
 | Swap | `sysctl vm.swapusage` |
 | App-Verbrauch | `proc_pid_rusage(RUSAGE_INFO_V4).ri_phys_footprint` für **alle** Prozesse (`proc_listallpids`), summiert pro verantwortlicher App über `responsibility_get_pid_responsible_for_pid`. Die Funktion ist nicht offiziell dokumentiert und wird deshalb zur Laufzeit per `dlsym` gesucht. Fehlt sie, zählt jeder Prozess für sich. Dauer: ca. 5 ms |
-| Verlauf | Ein Messpunkt alle 10 s, höchstens 1 Stunde (360 Punkte) im Speicher, dargestellt mit Swift Charts. Nichts wird auf die Festplatte geschrieben |
+| Verlauf | Ein Messpunkt alle 10 s mit Belegung, Speicherdruck und größter App, höchstens 1 Stunde (360 Punkte) im Speicher, dargestellt mit Swift Charts. Maus-Details per `chartOverlay` + `onContinuousHover`. Nichts wird auf die Festplatte geschrieben |
+| Detailwerte | Kompressor und Swap aus `host_statistics64` (`total_uncompressed_pages_in_compressor`, `swapins`, `swapouts`), Swap-Größe aus `vm.swapusage`, Grafikspeicher aus der IORegistry (`IOAccelerator` → `PerformanceStatistics` → „In use system memory“). Alles ohne Admin-Rechte |
+| Steuerung per Link | `CFBundleURLTypes` mit Schema `tidyram`, Apple Event `kAEGetURL` im `AppDelegate` |
+| Protokoll | `os.Logger`, Subsystem `local.tidyram` |
 | Mitteilungen | `UserNotifications`. Nur beim Übergang in den kritischen Bereich, höchstens alle 10 Minuten |
 | Tastenkürzel | Carbon `RegisterEventHotKey`. Braucht **keine** Bedienungshilfen-Berechtigung, weil nur genau dieses Kürzel abgefangen und keine Tastatureingabe mitgelesen wird |
 | Apps beenden | `NSRunningApplication.terminate()`, regulär, nie erzwungen |
@@ -476,6 +560,7 @@ brew uninstall --cask --zap tidyram
 - **Wirkung ist vorübergehend:** macOS füllt den Datei-Cache nach dem Freigeben wieder, und das ist so gewollt.
 - **Nicht notarisiert:** Deshalb die Warnung beim ersten Start und im Passwortdialog, siehe [oben](#passwortabfrage-problem-und-workaround).
 - **Verlauf nur im Arbeitsspeicher:** Nach einem Neustart von TidyRAM beginnt die Grafik von vorn.
+- **Grafikspeicher nicht überall:** Manche Macs (vor allem Intel mit eigener Grafikkarte) liefern den GPU-Wert nicht. Dann fehlt nur diese Detailzeile.
 - **Tastenkürzel belegt?** Nutzt eine andere App bereits ⌃⌥⌘R, kann TidyRAM es nicht registrieren. Dann bitte im Einstellungsfenster abschalten.
 - **Nach einem neuen Build** musst du die App erneut nach `/Applications` kopieren (`./scripts/install.sh` erledigt das).
 

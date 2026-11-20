@@ -13,7 +13,7 @@
 set -euo pipefail
 cd "${0:A:h}"   # ins Verzeichnis dieses Skripts wechseln
 
-VERSION="1.3.0"
+VERSION="1.4.0"
 APP=build/TidyRAM.app
 BIN="$APP/Contents/MacOS/TidyRAM"
 
@@ -76,6 +76,13 @@ cat > "$APP/Contents/Info.plist" <<PLIST
   <key>CFBundleVersion</key><string>${VERSION}</string>
   <key>LSMinimumSystemVersion</key><string>14.0</string>
   <key>LSUIElement</key><true/>
+  <key>CFBundleURLTypes</key>
+  <array>
+    <dict>
+      <key>CFBundleURLName</key><string>local.tidyram</string>
+      <key>CFBundleURLSchemes</key><array><string>tidyram</string></array>
+    </dict>
+  </array>
   <key>NSHumanReadableCopyright</key><string>MIT License – kostenlos und Open Source</string>
 </dict>
 </plist>

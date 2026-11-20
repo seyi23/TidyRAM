@@ -24,6 +24,7 @@
 
 import Darwin
 import Foundation
+import IOKit
 
 // MARK: - Speicherdruck
 
@@ -61,6 +62,19 @@ struct MemoryStats: Sendable {
     var cachedFiles: UInt64 = 0  // Datei-Cache (freigebbar)
     var swapUsed: UInt64 = 0     // auf die SSD ausgelagert
     var pressure: MemoryPressure = .unknown
+
+    // Detailwerte für die aufklappbare Legende:
+    var compressedOriginal: UInt64 = 0  // so viele Daten stecken (ungepresst) im Kompressor
+    var purgeable: UInt64 = 0           // Teil des Caches, den Apps als "sofort verwerfbar" markiert haben
+    var swapTotal: UInt64 = 0           // Größe der Swap-Dateien auf der SSD
+    var swappedOut: UInt64 = 0          // seit dem Start insgesamt ausgelagert
+    var swappedIn: UInt64 = 0           // seit dem Start insgesamt zurückgeholt
+    var gpuInUse: UInt64?               // Grafik (GPU) – nil, wenn nicht auslesbar
+
+    /// Wie stark der Kompressor presst, z. B. 2,3 = auf weniger als die Hälfte.
+    var compressionRatio: Double {
+        compressed == 0 ? 0 : Double(compressedOriginal) / Double(compressed)
+    }
 
     /// "Benutzter Speicher" laut Aktivitätsanzeige: Apps + Reserviert + Komprimiert.
     /// Der Datei-Cache zählt bewusst NICHT dazu, weil macOS ihn sofort
@@ -103,17 +117,55 @@ struct MemoryStats: Sendable {
         s.wired = UInt64(info.wire_count) * page
         s.compressed = UInt64(info.compressor_page_count) * page
         s.cachedFiles = UInt64(info.external_page_count + info.purgeable_count) * page
-        s.swapUsed = swapUsed()
         s.pressure = pressureLevel()
+
+        // Details
+        s.compressedOriginal = UInt64(info.total_uncompressed_pages_in_compressor) * page
+        s.purgeable = UInt64(info.purgeable_count) * page
+        s.swappedOut = UInt64(info.swapouts) * page
+        s.swappedIn = UInt64(info.swapins) * page
+        let swap = swapUsage()
+        s.swapUsed = swap.used
+        s.swapTotal = swap.total
+        s.gpuInUse = gpuMemoryInUse()
         return s
     }
 
-    /// Belegter Swap-Speicher (entspricht `sysctl vm.swapusage`).
-    private static func swapUsed() -> UInt64 {
+    /// Swap-Nutzung (entspricht `sysctl vm.swapusage`).
+    private static func swapUsage() -> (used: UInt64, total: UInt64) {
         var usage = xsw_usage()
         var size = MemoryLayout<xsw_usage>.size
-        guard sysctlbyname("vm.swapusage", &usage, &size, nil, 0) == 0 else { return 0 }
-        return usage.xsu_used
+        guard sysctlbyname("vm.swapusage", &usage, &size, nil, 0) == 0 else { return (0, 0) }
+        return (usage.xsu_used, usage.xsu_total)
+    }
+
+    /// Speicher, den die Grafik (GPU) gerade nutzt. Auf Apple Silicon teilen
+    /// sich CPU und GPU denselben RAM; dieser Speicher ist größtenteils
+    /// "reserviert" (wired). Gelesen wird der Wert "In use system memory" aus
+    /// der IORegistry – derselbe Wert, den `ioreg -c IOAccelerator` zeigt.
+    /// Braucht keine Admin-Rechte. Gibt `nil` zurück, wenn der Grafiktreiber
+    /// den Wert nicht anbietet (z. B. bei manchen Intel-Macs mit eigener Grafikkarte).
+    private static func gpuMemoryInUse() -> UInt64? {
+        var iterator: io_iterator_t = 0
+        guard IOServiceGetMatchingServices(kIOMainPortDefault, IOServiceMatching("IOAccelerator"),
+                                           &iterator) == KERN_SUCCESS else { return nil }
+        defer { IOObjectRelease(iterator) }
+
+        var total: UInt64 = 0
+        var found = false
+        var service = IOIteratorNext(iterator)
+        while service != 0 {
+            if let property = IORegistryEntryCreateCFProperty(
+                service, "PerformanceStatistics" as CFString, kCFAllocatorDefault, 0)?
+                .takeRetainedValue() as? [String: Any],
+               let inUse = property["In use system memory"] as? NSNumber {
+                total += inUse.uint64Value
+                found = true
+            }
+            IOObjectRelease(service)
+            service = IOIteratorNext(iterator)
+        }
+        return found ? total : nil
     }
 
     /// Speicherdruck-Stufe des Kernels: 1 = normal, 2 = Warnung, 4 = kritisch.

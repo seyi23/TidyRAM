@@ -90,3 +90,34 @@
 "Lizenz" = "License";
 "MIT – kostenlos & Open Source" = "MIT – free & open source";
 "Vibe-coded mit Claude" = "Vibe-coded with Claude";
+
+/* 1.4.0 – Legend details */
+"Klicken für Details" = "Click for details";
+"Speicher, den Programme selbst angelegt haben: offene Dokumente, Browser-Tabs, Bilder, Daten. Er wird nur frei, wenn du die App schließt." = "Memory that apps allocated themselves: open documents, browser tabs, images, data. It's only freed when you quit the app.";
+"Vom macOS-Kernel fest gesperrt: Kernel, Treiber und auf Apple Silicon vor allem Grafikspeicher. Kann weder ausgelagert noch freigegeben werden." = "Locked in place by the macOS kernel: the kernel, drivers and, on Apple Silicon, mostly graphics memory. It can neither be swapped out nor freed.";
+"Selten genutzte App-Daten, die macOS zusammenpresst, statt sie auf die SSD auszulagern. Das ist schneller als Swap, kostet aber etwas Rechenzeit." = "Rarely used app data that macOS compresses instead of swapping it to the SSD. Faster than swap, but costs a little CPU time.";
+"Kopien von Dateien und Programmcode, die ohnehin auf der SSD liegen. macOS gibt sie sofort her, wenn Programme Speicher brauchen. Genau diesen Bereich leert der Button." = "Copies of files and program code that are on the SSD anyway. macOS hands them over instantly when apps need memory. This is exactly what the button clears.";
+"Komplett ungenutzt. Wenig freier Speicher ist normal, denn macOS nutzt freien RAM als Cache." = "Completely unused. Little free memory is normal, because macOS uses free RAM as cache.";
+"Auf die SSD ausgelagerter Speicher. Wächst er bei erhöhtem Speicherdruck, reicht der RAM nicht aus." = "Memory swapped out to the SSD. If it grows while memory pressure is elevated, there isn't enough RAM.";
+"Größte App: %@ mit %@" = "Largest app: %@ with %@";
+"Grafik (GPU) nutzt gerade %@ – das meiste davon zählt hierzu." = "Graphics (GPU) currently uses %@ – most of it counts here.";
+"%@ App-Daten auf %@ gepresst" = "%@ of app data compressed into %@";
+"Ersparnis: %@ (Faktor %@)" = "Saved: %@ (ratio %@)";
+"Davon von Apps als sofort verwerfbar markiert: %@" = "Of which marked as purgeable by apps: %@";
+"Eingebauter Arbeitsspeicher insgesamt: %@" = "Total installed memory: %@";
+"Swap-Dateien auf der SSD: %@ von %@ belegt" = "Swap files on the SSD: %@ of %@ used";
+"Seit dem Start ausgelagert: %@, zurückgeholt: %@" = "Since startup swapped out: %@, swapped in: %@";
+
+/* 1.4.0 – History */
+"%@ · %@ belegt · %@" = "%@ · %@ used · %@";
+"Bei Speicherdruck vorne: %@" = "Top app during memory pressure: %@";
+"Größter Verbraucher der letzten Stunde: %@ (bis %@)" = "Largest consumer in the last hour: %@ (up to %@)";
+
+/* 1.4.0 – Settings */
+"Steuerung per Link" = "Control via link";
+"Im Terminal" = "In Terminal";
+"Funktioniert auch in Kurzbefehlen (Aktion „URL öffnen“), Raycast, Alfred und Skripten. Das Ergebnis kommt als Mitteilung." = "Also works in Shortcuts (\"Open URLs\" action), Raycast, Alfred and scripts. The result appears as a notification.";
+"Aktualisieren alle" = "Refresh every";
+"2 Sekunden" = "2 seconds";
+"5 Sekunden" = "5 seconds";
+"10 Sekunden" = "10 seconds";

@@ -2,6 +2,18 @@
 
 Alle wichtigen Änderungen an TidyRAM. Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen nach [Semantic Versioning](https://semver.org/lang/de/).
 
+## [1.4.0] – 2026-11-20
+
+### Neu
+- **Details per Klick:** Jeder Bereich der Legende lässt sich aufklappen, mit Erklärung in einfachen Worten und Detailwerten: Grafikspeicher (GPU) bei *Reserviert*, Kompressionsfaktor bei *Komprimiert*, sofort verwerfbarer Cache, Swap-Dateien und ausgelagerte Datenmenge
+- **„Wer frisst Speicher?“:** Der Verlauf merkt sich zu jedem Zeitpunkt die größte App. Mit der Maus über die Grafik siehst du Uhrzeit, Belegung, Speicherdruck und Spitzenreiter. Darunter steht, wer bei Speicherdruck vorne lag
+- **Steuerung per Link:** `open -g tidyram://free` gibt RAM aus Terminal, Kurzbefehlen, Raycast, Alfred oder Skripten frei
+- **Aktualisierungs-Intervall wählbar:** 2, 5 oder 10 Sekunden
+- **Protokoll** für die Fehlersuche: `/usr/bin/log stream --info --predicate 'subsystem == "local.tidyram"'`
+
+### New (English summary)
+Expandable legend with explanations and details (GPU memory, compression ratio, swap), "who's eating memory?" hover details in the history chart, control via `tidyram://free` link, selectable refresh interval, logging.
+
 ## [1.3.0] – 2026-11-20
 
 ### Neu

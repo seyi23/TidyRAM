@@ -68,6 +68,7 @@ final class AppSettings {
         static let autoClean = "autoClean"
         static let autoCleanMinutes = "autoCleanMinutes"
         static let hotKeyEnabled = "hotKeyEnabled"
+        static let refreshSeconds = "refreshSeconds"
     }
 
     /// Anzeige in der Menüleiste. Standard: Prozent.
@@ -97,6 +98,12 @@ final class AppSettings {
         didSet { defaults.set(hotKeyEnabled, forKey: Key.hotKeyEnabled) }
     }
 
+    /// Wie oft die Werte neu gelesen werden (Sekunden). Standard: 2.
+    /// Größere Abstände sparen auf MacBooks ein wenig Akku.
+    var refreshSeconds: Int {
+        didSet { defaults.set(refreshSeconds, forKey: Key.refreshSeconds) }
+    }
+
     init() {
         // Gespeicherte Werte laden, sonst die Standardwerte verwenden.
         menuBarStyle = MenuBarStyle(rawValue: defaults.string(forKey: Key.menuBarStyle) ?? "") ?? .percent
@@ -105,5 +112,7 @@ final class AppSettings {
         let minutes = defaults.integer(forKey: Key.autoCleanMinutes)
         autoCleanMinutes = minutes > 0 ? minutes : 30
         hotKeyEnabled = defaults.object(forKey: Key.hotKeyEnabled) as? Bool ?? true
+        let seconds = defaults.integer(forKey: Key.refreshSeconds)
+        refreshSeconds = [2, 5, 10].contains(seconds) ? seconds : 2
     }
 }

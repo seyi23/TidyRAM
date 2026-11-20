@@ -24,7 +24,7 @@ A lightweight macOS menu bar app that shows your memory usage at a glance and sa
 - **Platform:** macOS 14 (Sonoma) or later, Apple Silicon and Intel (tested on macOS 27.2, Apple Silicon)
 - **App languages:** English and German (follows your system language)
 - **Tech:** Swift 6 / SwiftUI, no external dependencies
-- **Version:** 1.3.0 ([changelog](CHANGELOG.md), in German)
+- **Version:** 1.4.0 ([changelog](CHANGELOG.md), in German)
 - **Download:** [latest release](https://github.com/seyi23/TidyRAM/releases/latest) or via [Homebrew](#option-2-homebrew) ([tap](https://github.com/seyi23/homebrew-tidyram))
 - **License:** MIT (free, open source)
 
@@ -37,18 +37,19 @@ A lightweight macOS menu bar app that shows your memory usage at a glance and sa
 3. [Installation](#installation)
 4. [Usage](#usage)
 5. [Settings](#settings)
-6. [Memory categories explained](#memory-categories-explained)
-7. [How freeing memory works](#how-freeing-memory-works)
-8. [Password prompt: problem and workaround](#password-prompt-problem-and-workaround)
-9. [Checking memory in Terminal](#checking-memory-in-terminal)
-10. [Project structure](#project-structure)
-11. [Technical details](#technical-details)
-12. [Uninstalling](#uninstalling)
-13. [Known limitations](#known-limitations)
-14. [Building the PDF docs](#building-the-pdf-docs)
-15. [How it was made: vibe coding with Claude](#how-it-was-made-vibe-coding-with-claude)
-16. [Contributing](#contributing)
-17. [License](#license)
+6. [Control via link and Terminal](#control-via-link-and-terminal)
+7. [Memory categories explained](#memory-categories-explained)
+8. [How freeing memory works](#how-freeing-memory-works)
+9. [Password prompt: problem and workaround](#password-prompt-problem-and-workaround)
+10. [Checking memory in Terminal](#checking-memory-in-terminal)
+11. [Project structure](#project-structure)
+12. [Technical details](#technical-details)
+13. [Uninstalling](#uninstalling)
+14. [Known limitations](#known-limitations)
+15. [Building the PDF docs](#building-the-pdf-docs)
+16. [How it was made: vibe coding with Claude](#how-it-was-made-vibe-coding-with-claude)
+17. [Contributing](#contributing)
+18. [License](#license)
 
 ---
 
@@ -58,15 +59,19 @@ A lightweight macOS menu bar app that shows your memory usage at a glance and sa
 |---|---|
 | **Live menu bar display** | Chip icon with used memory in percent or GB, a colored dot for memory pressure, or the icon only. Updated every 2 seconds. |
 | **Memory overview** | Colored bar and legend: Apps, Wired, Compressed, File cache, Free and Swap. Same numbers as Activity Monitor. |
+| **Details on click** | Each category expands into a plain-language explanation plus details, e.g. graphics memory (GPU) for *Wired*, compression ratio for *Compressed*, total swapped data for *Swap*. |
 | **Memory pressure** | *Normal*, *Elevated* or *Critical* badge, straight from the macOS kernel. |
 | **History chart** | Used memory over the last hour. Periods of elevated or critical pressure are shaded yellow or red. |
+| **"Who's eating memory?"** | The history remembers the largest app at every point in time. Hover over the chart to see time, usage, pressure and the top app. Below it you see which app led during memory pressure. |
 | **Free unused RAM** | Clears the file cache with Apple's `purge` and shows how much was freed. |
 | **Shortcut ⌃⌥⌘R** | Frees RAM from anywhere without opening the window. The result appears as a notification. |
+| **Control via link** | `open -g tidyram://free` frees RAM from Terminal, Shortcuts, Raycast, Alfred or scripts. See [Control via link and Terminal](#control-via-link-and-terminal). |
 | **Notifications** | Alerts you when memory gets low, naming the app that uses the most. At most every 10 minutes. |
 | **Free automatically (optional)** | Clears the cache on elevated memory pressure, at most every 15, 30 or 60 minutes. Off by default. |
 | **No password (optional)** | A narrowly scoped sudo rule lets freeing run without a password dialog. The app shows whether it's active. |
 | **Largest apps** | The 8 apps using the most memory, **including all tabs and helper processes** (Safari, Chrome, Firefox, Electron apps). Click ✕ to quit one normally (like ⌘Q). |
 | **Settings window** | All options in one place, see [Settings](#settings). |
+| **Refresh interval** | Every 2, 5 or 10 seconds. Longer intervals save a little battery on MacBooks. |
 | **Launch at login** | Via the official macOS API (`SMAppService`). |
 
 ---
@@ -168,8 +173,10 @@ The app is only ad-hoc signed and not notarized by Apple. Notarization requires 
 Click the **chip icon** in the menu bar. A window opens with:
 
 1. **Header:** used memory ("11.1 GB of 16 GB used"), the memory pressure badge and the **gear** for [Settings](#settings).
-2. **Bar and legend:** how RAM is split up, see [Memory categories](#memory-categories-explained).
+2. **Bar and legend:** how RAM is split up, see [Memory categories](#memory-categories-explained). **Click a category** to expand an explanation with details, click again to collapse it.
 3. **History (last hour):** used memory in percent. Periods of elevated or critical pressure are shaded yellow or red. The chart fills up while TidyRAM is running (one data point every 10 seconds).
+    - **Hover over the chart:** shows time, usage, memory pressure and the largest app at that moment ("who's eating memory?").
+    - **Below it** you see which app led most often during memory pressure, or, without pressure, the largest consumer of the last hour.
 4. **"Free unused RAM":** clears the file cache. Below it you see
     - the result, e.g. *"1.9 GB freed"*,
     - the password status: 🔒 *Asks for password* or ✔︎ *Set up without password*.
@@ -177,6 +184,8 @@ Click the **chip icon** in the menu bar. A window opens with:
 6. **Footer:** *Launch at login* and *Quit*.
 
 **Keyboard shortcut:** **⌃⌥⌘R** (Control + Option + Command + R) frees RAM from anywhere. The result appears as a notification. You can turn the shortcut off in Settings.
+
+**From Terminal:** `open -g tidyram://free`, see [Control via link and Terminal](#control-via-link-and-terminal).
 
 ---
 
@@ -194,10 +203,59 @@ Open them with the **gear** in the TidyRAM window. All changes apply immediately
 | **Notifications** | *Never*, *On critical memory pressure* (default) or *Already on elevated memory pressure*. macOS asks once whether TidyRAM may send notifications |
 | **Free automatically** | Off (default) or on, at most every 15, 30 or 60 minutes. **Only available if [freeing without password](#password-prompt-problem-and-workaround) is set up.** Otherwise a password dialog would pop up out of nowhere |
 | **Keyboard shortcut** | ⌃⌥⌘R on (default) or off |
-| **General** | Launch at login |
+| **Control via link** | Shows the Terminal command `open -g tidyram://free` to copy |
+| **General** | Refresh every 2 (default), 5 or 10 seconds. Launch at login |
 | **About TidyRAM** | Version, license, link to the repository |
 
 Settings are stored locally in `~/Library/Preferences/local.tidyram.plist`.
+
+---
+
+## Control via link and Terminal
+
+TidyRAM registers the `tidyram://` link scheme with macOS, so you can control it from anywhere.
+
+### From Terminal
+
+```bash
+open -g tidyram://free
+```
+
+- `-g` means: in the background, nothing jumps to the front.
+- If TidyRAM isn't running, macOS launches it automatically.
+- The result (e.g. "1.6 GB freed") appears as a notification.
+- Without the [sudo rule](#password-prompt-problem-and-workaround), the password dialog appears.
+
+**Even shorter** with an alias in `~/.zshrc`:
+
+```bash
+alias ramfree='open -g tidyram://free'
+```
+
+**Without TidyRAM at all**, use Apple's tool directly. With the sudo rule set up, it won't ask for a password:
+
+```bash
+sudo -n /usr/sbin/purge
+```
+
+### Shortcuts, Raycast, Alfred
+
+| Tool | How |
+|---|---|
+| **Shortcuts** | New shortcut → **"Open URLs"** action → `tidyram://free`. Can also be triggered by Siri, a keyboard shortcut or an automation |
+| **Raycast** | *Create Quicklink* → link `tidyram://free`, name e.g. "Free RAM" |
+| **Alfred** | *Web Search* or a *Workflow* with *Open URL* → `tidyram://free` |
+| **Scripts** | `open -g tidyram://free`, e.g. before launching a memory-hungry app: `open -g tidyram://free && sleep 2 && open -a "Final Cut Pro"` |
+
+### Troubleshooting
+
+TidyRAM logs every link command and every freeing to the macOS log. Follow along with:
+
+```bash
+/usr/bin/log stream --info --predicate 'subsystem == "local.tidyram"'
+```
+
+You need the full path `/usr/bin/log` because in zsh, `log` is a built-in command with a different meaning.
 
 ---
 
@@ -206,11 +264,33 @@ Settings are stored locally in `~/Library/Preferences/local.tidyram.plist`.
 | Category | Meaning | Can be freed? |
 |---|---|---|
 | **Apps** | Memory that apps allocated themselves (documents, tabs, data) | Only by quitting the app |
-| **Wired** | Locked by the macOS kernel, can never be swapped out | No |
+| **Wired** | Locked by the macOS kernel, can never be swapped out. Details below | No |
 | **Compressed** | Space used by the memory compressor. macOS compresses rarely used app data instead of swapping it to the SSD | Only by quitting apps |
 | **File cache** | Copies of files and program code that are on the SSD anyway | **Yes**, that's what the button does |
 | **Free** | Completely unused | – |
 | **Swap** | Memory swapped out to the SSD (not in RAM) | Only by quitting apps |
+
+In the app, **clicking a category** shows the same explanation plus details:
+
+| Category | Details in the app |
+|---|---|
+| Apps | Largest app and its usage |
+| Wired | Graphics memory (GPU) currently in use |
+| Compressed | How much app data is in the compressor, how much space that saves, compression ratio |
+| File cache | Portion that apps marked as purgeable |
+| Free | Total installed memory |
+| Swap | Swap file usage, data swapped out and back in since startup |
+
+### What's in "Wired"?
+
+*Wired* memory (`Pages wired down` in Terminal) is memory the macOS kernel holds in place. It can never be swapped out, compressed or freed. It includes:
+
+- the **kernel itself** and its data structures, e.g. page tables, process and network management,
+- **drivers** (kernel extensions),
+- on Apple Silicon Macs mostly **graphics memory**: CPU and GPU share the same RAM, and whatever the GPU is using right now (windows, videos, games, effects, external displays) has to stay in place,
+- memory that apps explicitly lock, e.g. virtual machines or audio software.
+
+1.5 to 3 GB is typical. Much more usually means heavy graphics work (several displays, video editing, games) or a running VM. TidyRAM shows the graphics share when you expand *Wired*. It comes from the same source as `ioreg -c IOAccelerator` ("In use system memory").
 
 **"Used"** in the app = Apps + Wired + Compressed. That's the same definition as *Memory Used* in Activity Monitor. The file cache doesn't count because macOS can free it instantly at any time.
 
@@ -401,7 +481,8 @@ TidyRAM/
 │   ├── MemoryStats.swift       Reads RAM and per-app usage from the kernel (read-only)
 │   ├── Cleaner.swift           Runs purge (sudo -n or password dialog)
 │   ├── Notifier.swift          macOS notifications
-│   └── GlobalHotKey.swift      Keyboard shortcut ⌃⌥⌘R
+│   ├── GlobalHotKey.swift      Keyboard shortcut ⌃⌥⌘R
+│   └── URLCommands.swift       Control via link (tidyram://free)
 ├── Resources/
 │   ├── AppIcon.icns            App icon (generated by scripts/make-icon.swift)
 │   ├── de.lproj/               German (development language)
@@ -441,7 +522,10 @@ The code comments are in German. They're detailed, and any translation tool hand
 | Memory pressure | `sysctl kern.memorystatus_vm_pressure_level` (1/2/4) |
 | Swap | `sysctl vm.swapusage` |
 | Per-app usage | `proc_pid_rusage(RUSAGE_INFO_V4).ri_phys_footprint` for **all** processes (`proc_listallpids`), summed per responsible app via `responsibility_get_pid_responsible_for_pid`. That function isn't officially documented, so it's looked up at runtime via `dlsym`. If it's missing, each process counts on its own. Takes about 5 ms |
-| History | One data point every 10 s, at most 1 hour (360 points) kept in memory, drawn with Swift Charts. Nothing is written to disk |
+| History | One data point every 10 s with usage, pressure and top app, at most 1 hour (360 points) kept in memory, drawn with Swift Charts. Hover details via `chartOverlay` + `onContinuousHover`. Nothing is written to disk |
+| Details | Compressor and swap from `host_statistics64` (`total_uncompressed_pages_in_compressor`, `swapins`, `swapouts`), swap size from `vm.swapusage`, graphics memory from the IORegistry (`IOAccelerator` → `PerformanceStatistics` → "In use system memory"). No admin rights needed |
+| Control via link | `CFBundleURLTypes` with scheme `tidyram`, Apple Event `kAEGetURL` in the `AppDelegate` |
+| Logging | `os.Logger`, subsystem `local.tidyram` |
 | Notifications | `UserNotifications`. Only when entering the critical range, at most every 10 minutes |
 | Keyboard shortcut | Carbon `RegisterEventHotKey`. Needs **no** Accessibility permission, because it only captures this one shortcut and reads no other keystrokes |
 | Quitting apps | `NSRunningApplication.terminate()`, normal quit, never forced |
@@ -478,6 +562,7 @@ brew uninstall --cask --zap tidyram
 - **The effect is temporary:** macOS refills the file cache after freeing, and that's intended.
 - **Not notarized:** hence the warning on first launch and in the password dialog, see [above](#password-prompt-problem-and-workaround).
 - **History is in memory only:** after restarting TidyRAM the chart starts over.
+- **Graphics memory not everywhere:** some Macs (mostly Intel with a discrete GPU) don't report the GPU value. Only that detail line is missing then.
 - **Shortcut already taken?** If another app already uses ⌃⌥⌘R, TidyRAM can't register it. Turn it off in Settings then.
 - **After a new build** you need to copy the app to `/Applications` again (`./scripts/install.sh` does that).
 

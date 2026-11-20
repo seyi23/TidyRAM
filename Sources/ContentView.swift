@@ -22,11 +22,14 @@ import SwiftUI
 
 // MARK: - Speicherbereiche
 
-/// Die fünf Bereiche im Balken – in der Reihenfolge, in der sie gezeichnet
-/// werden. Farbe und Titel stehen hier zentral, damit Balken und Legende
-/// immer übereinstimmen.
-private enum Segment: CaseIterable {
-    case app, wired, compressed, cache, free
+/// Die Bereiche in Balken und Legende. Farbe, Titel und Erklärung stehen hier
+/// zentral, damit Balken, Legende und Details immer übereinstimmen.
+/// Swap liegt auf der SSD (nicht im RAM) und erscheint daher nur in der Legende.
+enum Segment: CaseIterable {
+    case app, wired, compressed, cache, free, swap
+
+    /// Bereiche, die im RAM liegen und im Balken gezeichnet werden.
+    static let barCases: [Segment] = [.app, .wired, .compressed, .cache, .free]
 
     var title: String {
         switch self {
@@ -35,6 +38,7 @@ private enum Segment: CaseIterable {
         case .compressed: String(localized: "Komprimiert")
         case .cache: String(localized: "Datei-Cache")
         case .free: String(localized: "Frei")
+        case .swap: String(localized: "Swap")
         }
     }
 
@@ -45,6 +49,7 @@ private enum Segment: CaseIterable {
         case .compressed: .purple
         case .cache: .gray.opacity(0.6)
         case .free: .green.opacity(0.5)
+        case .swap: .secondary
         }
     }
 
@@ -56,6 +61,25 @@ private enum Segment: CaseIterable {
         case .compressed: s.compressed
         case .cache: s.cachedFiles
         case .free: s.free
+        case .swap: s.swapUsed
+        }
+    }
+
+    /// Erklärung in einfachen Worten – erscheint beim Aufklappen.
+    var explanation: String {
+        switch self {
+        case .app:
+            String(localized: "Speicher, den Programme selbst angelegt haben: offene Dokumente, Browser-Tabs, Bilder, Daten. Er wird nur frei, wenn du die App schließt.")
+        case .wired:
+            String(localized: "Vom macOS-Kernel fest gesperrt: Kernel, Treiber und auf Apple Silicon vor allem Grafikspeicher. Kann weder ausgelagert noch freigegeben werden.")
+        case .compressed:
+            String(localized: "Selten genutzte App-Daten, die macOS zusammenpresst, statt sie auf die SSD auszulagern. Das ist schneller als Swap, kostet aber etwas Rechenzeit.")
+        case .cache:
+            String(localized: "Kopien von Dateien und Programmcode, die ohnehin auf der SSD liegen. macOS gibt sie sofort her, wenn Programme Speicher brauchen. Genau diesen Bereich leert der Button.")
+        case .free:
+            String(localized: "Komplett ungenutzt. Wenig freier Speicher ist normal, denn macOS nutzt freien RAM als Cache.")
+        case .swap:
+            String(localized: "Auf die SSD ausgelagerter Speicher. Wächst er bei erhöhtem Speicherdruck, reicht der RAM nicht aus.")
         }
     }
 }
@@ -75,6 +99,15 @@ func pressureColor(_ p: MemoryPressure) -> Color {
 struct ContentView: View {
     @Environment(MemoryMonitor.self) private var monitor
     @Environment(\.openSettings) private var openSettings
+
+    /// Welcher Bereich der Legende gerade aufgeklappt ist (nil = keiner).
+    @State private var expanded: Segment?
+    /// Messpunkt unter dem Mauszeiger in der Verlaufsgrafik.
+    @State private var hoverPoint: HistoryPoint?
+
+    init(initiallyExpanded: Segment? = nil) {
+        _expanded = State(initialValue: initiallyExpanded)
+    }
 
     var body: some View {
         // @Bindable erlaubt Zwei-Wege-Bindungen ($monitor.…) für den Toggle.
@@ -139,9 +172,9 @@ struct ContentView: View {
     /// seinem Anteil an der Summe aller Bereiche.
     private func usageBar(_ s: MemoryStats) -> some View {
         GeometryReader { geo in
-            let total = max(1, Double(Segment.allCases.reduce(0) { $0 + $1.value(s) }))
+            let total = max(1, Double(Segment.barCases.reduce(0) { $0 + $1.value(s) }))
             HStack(spacing: 1) {
-                ForEach(Segment.allCases, id: \.self) { seg in
+                ForEach(Segment.barCases, id: \.self) { seg in
                     Rectangle()
                         .fill(seg.color)
                         .frame(width: max(0, geo.size.width * Double(seg.value(s)) / total - 1))
@@ -153,26 +186,82 @@ struct ContentView: View {
         .animation(.easeOut(duration: 0.4), value: s.free)  // sanfter Übergang nach dem Freigeben
     }
 
+    /// Legende: Jede Zeile lässt sich per Klick aufklappen und zeigt dann eine
+    /// Erklärung und – wo macOS sie liefert – Detailwerte.
     private func legend(_ s: MemoryStats) -> some View {
-        Grid(alignment: .leading, horizontalSpacing: 8, verticalSpacing: 4) {
+        VStack(alignment: .leading, spacing: 4) {
             ForEach(Segment.allCases, id: \.self) { seg in
-                GridRow {
-                    Circle().fill(seg.color).frame(width: 8, height: 8)
-                    Text(seg.title)
-                    Spacer()
-                    Text(formatBytes(seg.value(s))).monospacedDigit()
+                VStack(alignment: .leading, spacing: 4) {
+                    Button {
+                        withAnimation(.snappy(duration: 0.2)) { expanded = expanded == seg ? nil : seg }
+                    } label: {
+                        HStack(spacing: 8) {
+                            if seg == .swap {
+                                Image(systemName: "arrow.left.arrow.right").font(.caption2).frame(width: 8)
+                            } else {
+                                Circle().fill(seg.color).frame(width: 8, height: 8)
+                            }
+                            Text(seg.title)
+                            Image(systemName: "chevron.right")
+                                .font(.caption2.weight(.semibold))
+                                .foregroundStyle(.tertiary)
+                                .rotationEffect(.degrees(expanded == seg ? 90 : 0))
+                            Spacer()
+                            Text(formatBytes(seg.value(s))).monospacedDigit()
+                        }
+                        .contentShape(Rectangle())  // ganze Zeile klickbar
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(seg == .swap ? .secondary : .primary)
+                    .help("Klicken für Details")
+
+                    if expanded == seg {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(seg.explanation).foregroundStyle(.secondary)
+                            ForEach(details(seg, s), id: \.self) { line in
+                                Text(line).monospacedDigit()
+                            }
+                        }
+                        .font(.caption)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(8)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 6))
+                    }
                 }
             }
-            // Swap liegt auf der SSD, nicht im RAM – daher nur grau in der Legende.
-            GridRow {
-                Image(systemName: "arrow.left.arrow.right").font(.caption2)
-                Text("Swap")
-                Spacer()
-                Text(formatBytes(s.swapUsed)).monospacedDigit()
-            }
-            .foregroundStyle(.secondary)
         }
         .font(.callout)
+    }
+
+    /// Detailwerte pro Bereich. Leere Liste = nur die Erklärung anzeigen.
+    private func details(_ seg: Segment, _ s: MemoryStats) -> [String] {
+        switch seg {
+        case .app:
+            guard let top = monitor.apps.first else { return [] }
+            return [String(localized: "Größte App: \(top.name) mit \(formatBytes(top.footprint))")]
+        case .wired:
+            guard let gpu = s.gpuInUse else { return [] }
+            return [String(localized: "Grafik (GPU) nutzt gerade \(formatBytes(gpu)) – das meiste davon zählt hierzu.")]
+        case .compressed:
+            guard s.compressed > 0, s.compressedOriginal > s.compressed else { return [] }
+            let ratio = s.compressionRatio.formatted(.number.precision(.fractionLength(1)))
+            return [
+                String(localized: "\(formatBytes(s.compressedOriginal)) App-Daten auf \(formatBytes(s.compressed)) gepresst"),
+                String(localized: "Ersparnis: \(formatBytes(s.compressedOriginal - s.compressed)) (Faktor \(ratio))"),
+            ]
+        case .cache:
+            guard s.purgeable > 0 else { return [] }
+            return [String(localized: "Davon von Apps als sofort verwerfbar markiert: \(formatBytes(s.purgeable))")]
+        case .free:
+            return [String(localized: "Eingebauter Arbeitsspeicher insgesamt: \(formatBytes(s.total))")]
+        case .swap:
+            var lines = [String(localized: "Swap-Dateien auf der SSD: \(formatBytes(s.swapUsed)) von \(formatBytes(s.swapTotal)) belegt")]
+            if s.swappedOut > 0 {
+                lines.append(String(localized: "Seit dem Start ausgelagert: \(formatBytes(s.swappedOut)), zurückgeholt: \(formatBytes(s.swappedIn))"))
+            }
+            return lines
+        }
     }
 
     // MARK: 3. Verlauf
@@ -206,6 +295,30 @@ struct ContentView: View {
                             .foregroundStyle(.blue)
                             .lineStyle(StrokeStyle(lineWidth: 1.5))
                     }
+                    // Markierung des Messpunkts unter dem Mauszeiger.
+                    if let hoverPoint {
+                        RuleMark(x: .value("Zeit", hoverPoint.date))
+                            .foregroundStyle(.secondary)
+                            .lineStyle(StrokeStyle(lineWidth: 1, dash: [2, 2]))
+                        PointMark(x: .value("Zeit", hoverPoint.date),
+                                  y: .value("Belegt", hoverPoint.usedFraction * 100))
+                            .foregroundStyle(pressureColor(hoverPoint.pressure) == .secondary ? .blue : pressureColor(hoverPoint.pressure))
+                            .symbolSize(30)
+                    }
+                }
+                // Mausbewegung über der Grafik → nächstgelegenen Messpunkt merken.
+                .chartOverlay { proxy in
+                    GeometryReader { geo in
+                        Rectangle().fill(.clear).contentShape(Rectangle())
+                            .onContinuousHover { phase in
+                                switch phase {
+                                case .active(let location):
+                                    hoverPoint = nearestPoint(at: location, proxy: proxy, geo: geo)
+                                case .ended:
+                                    hoverPoint = nil
+                                }
+                            }
+                    }
                 }
                 .chartYScale(domain: 0...100)
                 // Immer die ganze letzte Stunde zeigen – neue Werte erscheinen rechts.
@@ -223,8 +336,59 @@ struct ContentView: View {
                     }
                 }
                 .frame(height: 70)
+
+                // Unter der Grafik: Details zum Punkt unter der Maus, sonst eine
+                // Zusammenfassung "Wer frisst Speicher?".
+                Group {
+                    if let hoverPoint {
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text(hoverLine(hoverPoint))
+                            if let name = hoverPoint.topApp {
+                                Text(String(localized: "Größte App: \(name) mit \(formatBytes(hoverPoint.topAppBytes))"))
+                            }
+                        }
+                    } else if let summary = historySummary {
+                        Text(summary)
+                    }
+                }
+                .font(.caption).foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
             }
         }
+    }
+
+    /// Findet den Messpunkt, der dem Mauszeiger am nächsten liegt (max. 30 s Abstand).
+    private func nearestPoint(at location: CGPoint, proxy: ChartProxy, geo: GeometryProxy) -> HistoryPoint? {
+        guard let plotFrame = proxy.plotFrame else { return nil }
+        let x = location.x - geo[plotFrame].origin.x
+        guard let date: Date = proxy.value(atX: x),
+              let nearest = monitor.history.min(by: {
+                  abs($0.date.timeIntervalSince(date)) < abs($1.date.timeIntervalSince(date))
+              }),
+              abs(nearest.date.timeIntervalSince(date)) <= 30 else { return nil }
+        return nearest
+    }
+
+    /// "19:42 · 68% belegt · Erhöht"
+    private func hoverLine(_ point: HistoryPoint) -> String {
+        let time = point.date.formatted(date: .omitted, time: .shortened)
+        let percent = "\(Int((point.usedFraction * 100).rounded()))%"
+        return String(localized: "\(time) · \(percent) belegt · \(point.pressure.label)")
+    }
+
+    /// "Wer frisst Speicher?" – welche App bei Speicherdruck am häufigsten vorne
+    /// lag, sonst der größte Verbraucher der letzten Stunde.
+    private var historySummary: String? {
+        let pressured = monitor.history.filter { $0.pressure == .warning || $0.pressure == .critical }
+        let counts = Dictionary(grouping: pressured.compactMap(\.topApp), by: { $0 }).mapValues(\.count)
+        if let name = counts.max(by: { $0.value < $1.value })?.key {
+            return String(localized: "Bei Speicherdruck vorne: \(name)")
+        }
+        if let peak = monitor.history.max(by: { $0.topAppBytes < $1.topAppBytes }),
+           let name = peak.topApp, peak.topAppBytes > 0 {
+            return String(localized: "Größter Verbraucher der letzten Stunde: \(name) (bis \(formatBytes(peak.topAppBytes)))")
+        }
+        return nil
     }
 
     /// Zeitraum der x-Achse: die Stunde bis zum neuesten Messpunkt.

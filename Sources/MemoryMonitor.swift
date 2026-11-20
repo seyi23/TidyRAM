@@ -19,7 +19,13 @@
 
 import AppKit
 import Observation
+import OSLog
 import ServiceManagement
+
+/// Protokoll für Fehlersuche: im Terminal mit
+/// `/usr/bin/log stream --info --predicate 'subsystem == "local.tidyram"'` mitlesen
+/// (voller Pfad nötig: in der zsh ist `log` ein eingebauter Befehl).
+let log = Logger(subsystem: "local.tidyram", category: "app")
 
 /// Eine Zeile in der Liste "Größte Apps".
 struct AppUsage: Identifiable {
@@ -37,6 +43,8 @@ struct HistoryPoint: Identifiable {
     let date: Date
     let usedFraction: Double      // 0…1
     let pressure: MemoryPressure
+    let topApp: String?           // App mit dem größten Speicherverbrauch zu diesem Zeitpunkt
+    let topAppBytes: UInt64       // … und ihr Verbrauch
     var id: Date { date }
 }
 
@@ -45,6 +53,7 @@ enum CleanTrigger {
     case button   // Klick im Fenster: Ergebnis steht im Fenster
     case hotKey   // ⌃⌥⌘R: Fenster ist zu, daher Ergebnis als Mitteilung
     case auto     // automatisch bei Speicherdruck
+    case url      // per Link tidyram://free (Terminal, Kurzbefehle, Raycast …)
 }
 
 @MainActor
@@ -86,15 +95,18 @@ final class MemoryMonitor {
         Notifier.shared.setUp()
         updateHotKey()
         refresh()
-        // Endlosschleife: alle 2 s neue Werte, alle 60 s (30 Durchläufe) wird
-        // zusätzlich geprüft, ob die Passwort-Regel (noch) aktiv ist.
-        // `[weak self]` verhindert einen Speicherzyklus zwischen Modell und Task.
+        // Endlosschleife: alle 2/5/10 s (Einstellung) neue Werte, höchstens
+        // einmal pro Minute wird zusätzlich geprüft, ob die Passwort-Regel
+        // (noch) aktiv ist. `[weak self]` verhindert einen Speicherzyklus.
         refreshTask = Task { [weak self] in
-            var tick = 0
+            var lastPasswordCheck = Date.distantPast
             while !Task.isCancelled {
-                if tick % 30 == 0 { self?.passwordless = await Cleaner.isPasswordless() }
-                tick += 1
-                try? await Task.sleep(for: .seconds(2))
+                if Date().timeIntervalSince(lastPasswordCheck) >= 60 {
+                    lastPasswordCheck = Date()
+                    self?.passwordless = await Cleaner.isPasswordless()
+                }
+                let seconds = self?.settings.refreshSeconds ?? 2
+                try? await Task.sleep(for: .seconds(seconds))
                 self?.refresh()
             }
         }
@@ -144,7 +156,8 @@ final class MemoryMonitor {
     private func recordHistory() {
         let now = Date()
         guard now.timeIntervalSince(history.last?.date ?? .distantPast) >= historyInterval else { return }
-        history.append(HistoryPoint(date: now, usedFraction: stats.usedFraction, pressure: stats.pressure))
+        history.append(HistoryPoint(date: now, usedFraction: stats.usedFraction, pressure: stats.pressure,
+                                    topApp: apps.first?.name, topAppBytes: apps.first?.footprint ?? 0))
         history.removeAll { now.timeIntervalSince($0.date) > historyWindow }
     }
 
@@ -185,6 +198,7 @@ final class MemoryMonitor {
     /// Gibt den Datei-Cache frei und zeigt an, wie viel RAM dadurch frei wurde.
     func clean(trigger: CleanTrigger = .button) async {
         guard !isCleaning else { return }   // Doppelklicks ignorieren
+        log.info("Freigeben gestartet (\(String(describing: trigger), privacy: .public))")
         isCleaning = true
         lastResult = nil
         let before = MemoryStats.current()?.free ?? 0
@@ -203,10 +217,11 @@ final class MemoryMonitor {
         }
         passwordless = await Cleaner.isPasswordless()
         isCleaning = false
+        log.info("Freigeben beendet: \(self.lastResult ?? "-", privacy: .public)")
 
         // Bei Tastenkürzel ist das Fenster zu → Ergebnis als Mitteilung.
         // Bei automatischer Freigabe nur, wenn Mitteilungen eingeschaltet sind.
-        if trigger == .hotKey || (trigger == .auto && settings.notifyLevel != .off),
+        if trigger == .hotKey || trigger == .url || (trigger == .auto && settings.notifyLevel != .off),
            let lastResult {
             await Notifier.shared.post(title: "TidyRAM", body: lastResult)
         }

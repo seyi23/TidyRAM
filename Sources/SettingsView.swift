@@ -73,8 +73,26 @@ struct SettingsView: View {
                 .onChange(of: settings.hotKeyEnabled) { monitor.updateHotKey() }
             }
 
+            // Steuerung per Link
+            Section {
+                LabeledContent("Im Terminal") {
+                    Text(verbatim: "open -g tidyram://free").font(.system(.body, design: .monospaced))
+                        .textSelection(.enabled)
+                }
+            } header: {
+                Text("Steuerung per Link")
+            } footer: {
+                Text("Funktioniert auch in Kurzbefehlen (Aktion „URL öffnen“), Raycast, Alfred und Skripten. Das Ergebnis kommt als Mitteilung.")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+
             // Allgemein
             Section("Allgemein") {
+                Picker("Aktualisieren alle", selection: $settings.refreshSeconds) {
+                    Text("2 Sekunden").tag(2)
+                    Text("5 Sekunden").tag(5)
+                    Text("10 Sekunden").tag(10)
+                }
                 Toggle("Bei Anmeldung starten", isOn: $monitor.launchAtLogin)
             }
 

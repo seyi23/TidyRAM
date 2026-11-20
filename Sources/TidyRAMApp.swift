@@ -9,12 +9,15 @@
 //  build.sh erzeugt). Die Oberfläche besteht aus
 //    • dem `MenuBarExtra` – das Fenster unter dem Symbol in der Menüleiste,
 //    • der `Settings`-Szene – das Einstellungsfenster (Zahnrad oder ⌘,).
+//  Von außen lässt sich TidyRAM per Link steuern: `open -g tidyram://free`.
 //
 
 import SwiftUI
 
 @main
 struct TidyRAMApp: App {
+    /// Nimmt Links wie tidyram://free entgegen (siehe URLCommands.swift).
+    @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     /// Einstellungen (in UserDefaults gespeichert).
     @State private var settings: AppSettings
     /// Zentrales Datenmodell. Es liest alle 2 Sekunden die Speicherwerte und
@@ -24,7 +27,9 @@ struct TidyRAMApp: App {
     init() {
         let settings = AppSettings()
         _settings = State(initialValue: settings)
-        _monitor = State(initialValue: MemoryMonitor(settings: settings))
+        let monitor = MemoryMonitor(settings: settings)
+        _monitor = State(initialValue: monitor)
+        URLCommands.monitor = monitor
     }
 
     var body: some Scene {
