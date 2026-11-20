@@ -48,7 +48,12 @@ jobs:
           cat >> notes.md <<'EOF'
 
           ---
-          **Installation:** ZIP herunterladen, entpacken, `TidyRAM.app` in den Ordner „Programme“ ziehen.
+          **Installation:** ZIP herunterladen, entpacken, `TidyRAM.app` in den Ordner „Programme“ ziehen. Oder per Homebrew:
+          ```
+          brew tap seyi23/tidyram
+          brew trust seyi23/tidyram   # ab Homebrew 7
+          brew install --cask tidyram
+          ```
           Beim ersten Start meldet macOS, dass die App nicht überprüft werden kann (sie ist nicht von Apple notarisiert).
           Dann: *Systemeinstellungen → Datenschutz & Sicherheit → „Dennoch öffnen“*. Details in der README.
           EOF
