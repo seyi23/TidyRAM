@@ -35,6 +35,10 @@ if git diff --quiet; then
   echo "Formel ist bereits aktuell."
   exit 0
 fi
-git commit -qam "tidyram $VERSION"
+# Datenschutz: immer die anonyme GitHub-Adresse (…@users.noreply.github.com)
+# verwenden, nie die private E-Mail aus der globalen Git-Konfiguration.
+NOREPLY=$(gh api user --jq '"\(.id)+\(.login)@users.noreply.github.com"')
+LOGIN=$(gh api user --jq .login)
+git -c user.name="$LOGIN" -c user.email="$NOREPLY" commit -qam "tidyram $VERSION"
 git push -q
 echo "✅ Homebrew-Formel auf $VERSION aktualisiert."
