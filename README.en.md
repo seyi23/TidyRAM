@@ -25,7 +25,7 @@ A lightweight macOS menu bar app that shows your memory usage at a glance and sa
 - **App languages:** English and German (follows your system language)
 - **Tech:** Swift 6 / SwiftUI, no external dependencies
 - **Version:** 1.3.0 ([changelog](CHANGELOG.md), in German)
-- **Download:** [latest release](https://github.com/seyi23/TidyRAM/releases/latest) or via [Homebrew](#option-2-homebrew)
+- **Download:** [latest release](https://github.com/seyi23/TidyRAM/releases/latest) or via [Homebrew](#option-2-homebrew) ([tap](https://github.com/seyi23/homebrew-tidyram))
 - **License:** MIT (free, open source)
 
 ---
@@ -109,8 +109,16 @@ The app runs on Apple Silicon and Intel (universal binary).
 ### Option 2: Homebrew
 
 ```bash
-brew install --cask seyi23/tidyram/tidyram
+brew tap seyi23/tidyram
 ```
+```bash
+brew trust seyi23/tidyram
+```
+```bash
+brew install --cask tidyram
+```
+
+`brew trust` is only needed on Homebrew 7 and later. It allows Homebrew to load casks from this tap, which isn't one of Homebrew's official sources. Older versions don't have the command, so just skip it.
 
 Homebrew downloads the same ZIP from the releases and puts the app into **Applications**. The one-time approval on first launch (see option 1) is still needed. Update with `brew upgrade --cask tidyram`.
 

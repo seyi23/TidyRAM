@@ -25,7 +25,7 @@ Eine schlanke Menüleisten-App für macOS, die den Arbeitsspeicher übersichtlic
 - **Sprachen der App:** Deutsch und Englisch (folgt der Systemsprache)
 - **Technik:** Swift 6 / SwiftUI, keine externen Abhängigkeiten
 - **Version:** 1.3.0 ([Änderungen](CHANGELOG.md))
-- **Download:** [neueste Version](https://github.com/seyi23/TidyRAM/releases/latest) oder per [Homebrew](#variante-2-homebrew)
+- **Download:** [neueste Version](https://github.com/seyi23/TidyRAM/releases/latest) oder per [Homebrew](#variante-2-homebrew) ([Tap](https://github.com/seyi23/homebrew-tidyram))
 - **Lizenz:** MIT (kostenlos, Open Source)
 
 ---
@@ -109,8 +109,16 @@ Die App läuft auf Apple Silicon und Intel (Universal Binary).
 ### Variante 2: Homebrew
 
 ```bash
-brew install --cask seyi23/tidyram/tidyram
+brew tap seyi23/tidyram
 ```
+```bash
+brew trust seyi23/tidyram
+```
+```bash
+brew install --cask tidyram
+```
+
+`brew trust` ist erst ab Homebrew 7 nötig. Damit erlaubst du Homebrew, Formeln aus diesem Tap zu laden, das nicht zu den offiziellen Homebrew-Quellen gehört. Ältere Versionen kennen den Befehl nicht, dann einfach weglassen.
 
 Homebrew lädt dieselbe ZIP-Datei aus den Releases und legt die App in **Programme** ab. Auch hier ist beim ersten Start einmal die Freigabe wie in Variante 1 nötig. Updates gibt es mit `brew upgrade --cask tidyram`.
 

@@ -12,7 +12,7 @@ Alle wichtigen Änderungen an TidyRAM. Format nach [Keep a Changelog](https://ke
 - **Tastenkürzel ⌃⌥⌘R:** RAM von überall freigeben, Ergebnis als Mitteilung
 - **Automatisch freigeben (optional, standardmäßig aus):** bei erhöhtem Speicherdruck, höchstens alle 15, 30 oder 60 Minuten. Nur mit eingerichtetem Freigeben ohne Passwort
 - **Englische Übersetzung:** App folgt der Systemsprache. Dazu README und PDF auf Englisch
-- **Homebrew:** `brew install --cask seyi23/tidyram/tidyram`
+- **Homebrew:** eigenes Tap [seyi23/homebrew-tidyram](https://github.com/seyi23/homebrew-tidyram), Installation mit `brew tap seyi23/tidyram`, `brew trust seyi23/tidyram` (ab Homebrew 7) und `brew install --cask tidyram`
 - **CONTRIBUTING.md**, Vorlagen für Issues und Pull Requests
 
 ### Geändert
