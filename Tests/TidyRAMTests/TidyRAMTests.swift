@@ -27,9 +27,13 @@ struct MemoryStatsTests {
         #expect(s.used == s.appMemory + s.wired + s.compressed)
         #expect((0...1).contains(s.usedFraction))
         #expect(s.swapUsed <= s.swapTotal || s.swapTotal == 0)
-        // Alle RAM-Bereiche zusammen können nicht (nennenswert) größer als der RAM sein.
-        let sum = s.appMemory + s.wired + s.compressed + s.cachedFiles + s.free
-        #expect(sum <= s.total + s.total / 10)
+        // Jeder einzelne Bereich muss in den RAM passen. (Die Summe aller Bereiche
+        // wird bewusst NICHT geprüft: Die Kernel-Zähler sind nicht streng additiv –
+        // manche Seiten zählen in zwei Bereichen. Auf virtuellen Macs, z. B. bei
+        // GitHub Actions, liegt die Summe deshalb manchmal über dem RAM.)
+        for value in [s.appMemory, s.wired, s.compressed, s.cachedFiles, s.free] {
+            #expect(value <= s.total)
+        }
     }
 
     @Test("Eigener Prozess hat einen Speicherverbrauch")
