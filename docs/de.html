@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TidyRAM – kostenlose Menüleisten-App für den Arbeitsspeicher</title>
+  <meta name="description" content="TidyRAM ist eine kostenlose Open-Source-Menüleisten-App für macOS, die den Arbeitsspeicher übersichtlich anzeigt und ungenutzten RAM sicher freigibt. Vibe-coded mit Claude.">
+  <link rel="icon" href="icon.png">
+  <link rel="alternate" hreflang="en" href="./">
+  <link rel="stylesheet" href="site.css">
+</head>
+<body>
+  <header class="wrap top">
+    <a class="brand" href="de.html"><img src="icon.png" alt=""> TidyRAM</a>
+    <nav>
+      <a class="hide-sm" href="#funktionen">Funktionen</a>
+      <a class="hide-sm" href="#installation">Installation</a>
+      <a href="https://github.com/seyi23/TidyRAM">GitHub</a>
+      <a href="./" lang="en">English</a>
+    </nav>
+  </header>
+
+  <main>
+    <div class="wrap hero">
+      <div>
+        <h1>Der Arbeitsspeicher deines Macs, <span>aufgeräumt und klar.</span></h1>
+        <p class="lead">Eine schlanke Menüleisten-App, die zeigt, was deinen RAM wirklich belegt, und den Datei-Cache sicher freigibt, ohne deine Programme oder ihre Daten anzutasten.</p>
+        <div class="badges">
+          <span class="badge">Kostenlos &amp; Open Source (MIT)</span>
+          <span class="badge">macOS 14+</span>
+          <span class="badge">Apple Silicon &amp; Intel</span>
+          <span class="badge">Kein Tracking, kein Netzwerk</span>
+        </div>
+        <div class="actions">
+          <a class="btn primary" href="https://github.com/seyi23/TidyRAM/releases/latest">Herunterladen</a>
+          <a class="btn secondary" href="https://github.com/seyi23/TidyRAM">Auf GitHub ansehen</a>
+        </div>
+        <div class="cmd"><code>brew tap seyi23/tidyram &amp;&amp; brew trust seyi23/tidyram &amp;&amp; brew install --cask tidyram</code><button data-copy data-done="Kopiert">Kopieren</button></div>
+        <p class="note"><code>brew trust</code> ist erst ab Homebrew 7 nötig.</p>
+      </div>
+      <div class="hero-shot"><img src="screenshot.png" alt="TidyRAM-Fenster in der Menüleiste"></div>
+    </div>
+
+    <section id="funktionen">
+      <div class="wrap">
+        <h2>Was die App kann</h2>
+        <p class="sub">Dieselben Werte wie in der Aktivitätsanzeige, in einfachen Worten erklärt, direkt in deiner Menüleiste.</p>
+        <div class="grid">
+          <div class="card"><h3>Speicher auf einen Blick</h3><p>Apps, Reserviert, Komprimiert, Datei-Cache, Frei und Swap, dazu der echte Speicherdruck direkt vom Kernel.</p></div>
+          <div class="card"><h3>Details per Klick</h3><p>Jeden Bereich aufklappen für eine Erklärung und Details: Grafikspeicher, Kompressionsfaktor, sofort verwerfbarer Cache, Swap-Aktivität.</p></div>
+          <div class="card"><h3>Ungenutzten RAM freigeben</h3><p>Leert nur den Datei-Cache mit Apples eigenem <code>purge</code>. Einmal eingerichtet, fragt es nie wieder nach dem Passwort.</p></div>
+          <div class="card"><h3>Wer frisst Speicher?</h3><p>Jede App samt aller Tabs und Hilfsprozesse. So zeigt Safari seine echten 3 GB statt 300 MB.</p></div>
+          <div class="card"><h3>Verlauf über 24 Stunden</h3><p>Umschaltbar zwischen 1, 6 und 24 Stunden. Mit der Maus siehst du Uhrzeit, Speicherdruck und die größte App zu jedem Zeitpunkt.</p></div>
+          <div class="card"><h3>Mitteilungen</h3><p>Ein Hinweis, wenn der Speicher kritisch wird oder der Swap eine selbst gewählte Grenze überschreitet, mit der App, die am meisten belegt.</p></div>
+          <div class="card"><h3>Mini-Grafik in der Menüleiste</h3><p>Wahlweise Prozent, GB, ein farbiger Punkt für den Speicherdruck, ein kleiner 30-Minuten-Verlauf oder nur das Symbol.</p></div>
+          <div class="card"><h3>Tastenkürzel &amp; Automatisierung</h3><p>Überall ⌃⌥⌘R drücken, oder <code>open -g tidyram://free</code> aus Terminal, Kurzbefehlen, Raycast oder Alfred.</p></div>
+          <div class="card"><h3>Deutsch &amp; Englisch</h3><p>Folgt der Systemsprache. Für eine weitere Sprache übersetzt man eine einzige Datei.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap two">
+        <div>
+          <h2>Sicher gebaut</h2>
+          <p class="sub">macOS verwaltet den Arbeitsspeicher selbst sehr gut. TidyRAM respektiert das.</p>
+          <ul class="safe">
+            <li>Leert nur den Datei-Cache, also Daten, die ohnehin auf der SSD liegen.</li>
+            <li>Beendet nie Apps mit Gewalt. Der ✕-Knopf beendet regulär wie ⌘Q, Apps können also nach dem Sichern fragen.</li>
+            <li>Liest andere Prozesse nur, verändert sie nie.</li>
+            <li>Führt mit Admin-Rechten genau einen fest eingetragenen Befehl aus: <code>/usr/sbin/purge</code>.</li>
+            <li>Kein Netzwerkzugriff, kein Tracking. Einstellungen und Verlauf bleiben auf deinem Mac.</li>
+          </ul>
+        </div>
+        <img class="shot" src="settings.png" alt="TidyRAM-Einstellungsfenster">
+      </div>
+    </section>
+
+    <section id="installation">
+      <div class="wrap">
+        <h2>Installation</h2>
+        <p class="sub">Drei Wege, alle kostenlos.</p>
+        <ol class="steps">
+          <li><strong>Herunterladen:</strong> <code>TidyRAM-&lt;version&gt;.zip</code> unter <a href="https://github.com/seyi23/TidyRAM/releases/latest">Releases</a> laden, entpacken und <code>TidyRAM.app</code> in den Ordner „Programme“ ziehen.</li>
+          <li><strong>Homebrew:</strong> mit dem Befehl oben. Updates später mit <code>brew upgrade --cask tidyram</code>.</li>
+          <li><strong>Selbst bauen:</strong> <code>git clone https://github.com/seyi23/TidyRAM.git</code>, dann <code>./scripts/install.sh</code>.</li>
+        </ol>
+        <p class="note">TidyRAM ist nicht von Apple notarisiert. macOS blockiert deshalb einmal den ersten Start. Freigeben unter <em>Systemeinstellungen → Datenschutz &amp; Sicherheit → „Dennoch öffnen“</em>. <a href="https://github.com/seyi23/TidyRAM#readme">Vollständige Dokumentation</a> · <a href="TidyRAM.pdf">PDF</a></p>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap">
+        <h2>Vibe-coded mit Claude</h2>
+        <p class="sub">TidyRAM ist komplett per Vibe Coding entstanden: Idee und Anforderungen kamen im Gespräch, und <a href="https://claude.com/claude-code">Claude</a> von Anthropic hat Code, Skripte, Tests und Dokumentation geschrieben. Der Code ist ausführlich kommentiert. Schau gern selbst hinein, besonders in den Teil, der mit Admin-Rechten läuft.</p>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      <span>TidyRAM · MIT-Lizenz · kostenlos &amp; Open Source</span>
+      <span><a href="https://github.com/seyi23/TidyRAM">GitHub</a> · <a href="https://github.com/seyi23/TidyRAM/issues/new/choose">Fehler melden</a> · <a href="./" lang="en">English</a></span>
+    </div>
+  </footer>
+
+  <script>
+    // Kopierknopf für Befehle
+    document.querySelectorAll("[data-copy]").forEach(function (button) {
+      button.addEventListener("click", function () {
+        var text = button.parentElement.querySelector("code").innerText;
+        navigator.clipboard.writeText(text).then(function () {
+          var label = button.textContent;
+          button.textContent = button.dataset.done || "Copied";
+          setTimeout(function () { button.textContent = label; }, 1500);
+        });
+      });
+    });
+  </script>
+</body>
+</html>

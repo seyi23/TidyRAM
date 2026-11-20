@@ -2,6 +2,25 @@
 
 Alle wichtigen Änderungen an TidyRAM. Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen nach [Semantic Versioning](https://semver.org/lang/de/).
 
+## [1.5.0] – 2026-11-20
+
+### Neu
+- **Verlauf über 24 Stunden:** umschaltbar zwischen 1 h, 6 h und 24 h, lokal gespeichert (`~/Library/Application Support/TidyRAM/history.json`), übersteht Neustarts
+- **Mini-Grafik in der Menüleiste:** Verlauf der letzten 30 Minuten als weitere Anzeige-Option
+- **Swap-Warnung:** Mitteilung, wenn der Swap 2, 4, 8 oder 16 GB überschreitet
+- **Eigenverbrauch** von TidyRAM (Speicher und CPU) unter *Über TidyRAM*
+- **Automatische Tests** (Swift Testing, `swift test`) und **Swift Package**: Projekt lässt sich direkt in Xcode öffnen. Tests laufen bei jedem Push
+- **Homebrew automatisch:** Der Release-Workflow aktualisiert das Tap selbst (Secret `HOMEBREW_TAP_TOKEN`)
+- **Projektseite** auf GitHub Pages: [seyi23.github.io/TidyRAM](https://seyi23.github.io/TidyRAM/)
+
+### Behoben
+- „Zero KB freigegeben“ → „0 KB freigegeben“ (von den Tests gefunden)
+- Hinweistext unter dem Freigeben-Knopf wurde abgeschnitten
+- `update-homebrew.sh` verwendet für Commits immer die anonyme GitHub-Adresse
+
+### New (English summary)
+24-hour history with 1/6/24 h ranges, saved locally; mini chart in the menu bar; swap warning; own usage display; automated tests and Swift package; automatic Homebrew updates on release; project website on GitHub Pages.
+
 ## [1.4.0] – 2026-11-20
 
 ### Neu

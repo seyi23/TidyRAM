@@ -13,7 +13,7 @@
 set -euo pipefail
 cd "${0:A:h}"   # ins Verzeichnis dieses Skripts wechseln
 
-VERSION="1.4.0"
+VERSION="1.5.0"
 APP=build/TidyRAM.app
 BIN="$APP/Contents/MacOS/TidyRAM"
 

@@ -38,16 +38,6 @@ struct AppUsage: Identifiable {
     let app: NSRunningApplication // Referenz zum regulären Beenden
 }
 
-/// Ein Messpunkt für die Verlaufsgrafik.
-struct HistoryPoint: Identifiable {
-    let date: Date
-    let usedFraction: Double      // 0…1
-    let pressure: MemoryPressure
-    let topApp: String?           // App mit dem größten Speicherverbrauch zu diesem Zeitpunkt
-    let topAppBytes: UInt64       // … und ihr Verbrauch
-    var id: Date { date }
-}
-
 /// Wodurch eine Freigabe ausgelöst wurde – steuert, ob eine Mitteilung kommt.
 enum CleanTrigger {
     case button   // Klick im Fenster: Ergebnis steht im Fenster
@@ -67,6 +57,9 @@ final class MemoryMonitor {
     private(set) var lastResult: String?
     /// true, wenn die sudoers-Regel aktiv ist und purge ohne Passwort läuft.
     private(set) var passwordless = false
+    /// Eigenverbrauch von TidyRAM: Speicher und CPU-Last (% eines Kerns).
+    private(set) var selfFootprint: UInt64 = 0
+    private(set) var selfCPUPercent: Double = 0
 
     let settings: AppSettings
 
@@ -77,9 +70,11 @@ final class MemoryMonitor {
         "com.apple.systemuiserver", "com.apple.controlcenter",
     ]
 
-    // Verlauf: alle 10 s ein Punkt, maximal 1 Stunde → höchstens 360 Punkte.
+    // Verlauf: alle 10 s ein Punkt, maximal 24 Stunden → höchstens 8 640 Punkte.
+    // Gespeichert wird höchstens einmal pro Minute und beim Beenden.
     private let historyInterval: TimeInterval = 10
-    private let historyWindow: TimeInterval = 3600
+    private let historyWindow: TimeInterval = 24 * 3600
+    private var lastHistorySave = Date()
 
     // Mindestabstand zwischen zwei Mitteilungen wegen Speicherdruck.
     private let alertCooldown: TimeInterval = 10 * 60
@@ -88,13 +83,29 @@ final class MemoryMonitor {
     private var previousPressure: MemoryPressure = .unknown
     private var lastAlert = Date.distantPast
     private var lastAutoClean = Date.distantPast
+    private var previousSwap: UInt64?           // nil bis zur ersten Messung
+    private var lastSwapAlert = Date.distantPast
+    private var lastCPUSample = (cpu: SelfUsage.cpuSeconds(), wall: Date())
+    private var cpuSamples = 0
     private let hotKey = GlobalHotKey()
 
     init(settings: AppSettings) {
         self.settings = settings
+        // Gespeicherten Verlauf der letzten 24 h laden – so übersteht die
+        // Grafik einen Neustart von TidyRAM.
+        history = HistoryStore.load(maxAge: historyWindow)
+        // Beim Beenden den aktuellen Stand sichern.
+        NotificationCenter.default.addObserver(
+            forName: NSApplication.willTerminateNotification, object: nil, queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated { self.map { HistoryStore.save($0.history) } }
+        }
         Notifier.shared.setUp()
         updateHotKey()
         refresh()
+        // CPU-Messung erst NACH dem Start beginnen – der Start selbst kostet
+        // kurz viel Rechenzeit und soll nicht in den Eigenverbrauch einfließen.
+        lastCPUSample = (cpu: SelfUsage.cpuSeconds(), wall: Date())
         // Endlosschleife: alle 2/5/10 s (Einstellung) neue Werte, höchstens
         // einmal pro Minute wird zusätzlich geprüft, ob die Passwort-Regel
         // (noch) aktiv ist. `[weak self]` verhindert einen Speicherzyklus.
@@ -120,6 +131,39 @@ final class MemoryMonitor {
         updateApps()
         recordHistory()
         handlePressure()
+        handleSwap()
+        measureSelf()
+    }
+
+    /// Mitteilung, wenn der Swap die eingestellte Grenze überschreitet –
+    /// höchstens alle 30 Minuten. Beim Start wird nur gemessen, nicht gewarnt.
+    private func handleSwap() {
+        let current = stats.swapUsed
+        defer { previousSwap = current }
+        guard let previous = previousSwap,
+              SwapWarning.crossed(previous: previous, current: current, thresholdGB: settings.swapWarningGB),
+              Date().timeIntervalSince(lastSwapAlert) > 30 * 60 else { return }
+        lastSwapAlert = Date()
+        var body = String(localized: "\(formatBytes(current)) sind auf die SSD ausgelagert. Der Arbeitsspeicher reicht gerade nicht aus.")
+        if let top = apps.first {
+            body += " " + String(localized: "\(top.name) belegt \(formatBytes(top.footprint)). Große Apps zu schließen hilft am meisten.")
+        }
+        let title = String(localized: "Swap über \(settings.swapWarningGB) GB")
+        Task { await Notifier.shared.post(title: title, body: body) }
+    }
+
+    /// Misst, wie viel Speicher und CPU TidyRAM selbst braucht.
+    /// Die CPU-Last wird geglättet (gleitender Mittelwert), damit kurze Spitzen –
+    /// etwa direkt nach dem Start – nicht als Dauerlast erscheinen.
+    private func measureSelf() {
+        selfFootprint = physicalFootprint(of: ProcessInfo.processInfo.processIdentifier) ?? 0
+        let now = (cpu: SelfUsage.cpuSeconds(), wall: Date())
+        let wall = now.wall.timeIntervalSince(lastCPUSample.wall)
+        guard wall >= 1 else { return }   // zu kurzer Abstand → keine sinnvolle Messung
+        let current = SelfUsage.cpuPercent(cpuSecondsDelta: now.cpu - lastCPUSample.cpu, wallSecondsDelta: wall)
+        selfCPUPercent = cpuSamples == 0 ? current : 0.7 * selfCPUPercent + 0.3 * current
+        cpuSamples += 1
+        lastCPUSample = now
     }
 
     private func updateApps() {
@@ -159,6 +203,14 @@ final class MemoryMonitor {
         history.append(HistoryPoint(date: now, usedFraction: stats.usedFraction, pressure: stats.pressure,
                                     topApp: apps.first?.name, topAppBytes: apps.first?.footprint ?? 0))
         history.removeAll { now.timeIntervalSince($0.date) > historyWindow }
+
+        // Höchstens einmal pro Minute auf die Festplatte schreiben – im
+        // Hintergrund, damit die Oberfläche nicht stockt.
+        if now.timeIntervalSince(lastHistorySave) >= 60 {
+            lastHistorySave = now
+            let snapshot = history
+            Task.detached(priority: .utility) { HistoryStore.save(snapshot) }
+        }
     }
 
     /// Mitteilung und (optional) automatisches Freigeben bei Speicherdruck.

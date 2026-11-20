@@ -25,9 +25,8 @@ enum URLCommands {
 
     /// Führt einen Link-Befehl aus. Unbekannte Befehle werden ignoriert.
     static func handle(_ url: URL) {
-        guard url.scheme?.lowercased() == "tidyram" else { return }
-        // Bei "tidyram://free" steht der Befehl im "host"-Teil.
-        let command = (url.host ?? url.path).lowercased().trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+        // Bei "tidyram://free" steht der Befehl im "host"-Teil (siehe Helpers.swift).
+        guard let command = command(from: url) else { return }
         log.info("Link-Befehl empfangen: \(command, privacy: .public)")
 
         switch command {

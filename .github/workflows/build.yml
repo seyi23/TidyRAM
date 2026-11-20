@@ -1,5 +1,5 @@
-# Baut TidyRAM bei jedem Push und Pull Request auf einem macOS-Runner.
-# So sieht man sofort, ob der Code noch kompiliert.
+# Testet und baut TidyRAM bei jedem Push und Pull Request auf einem macOS-Runner.
+# So sieht man sofort, ob der Code noch kompiliert und alle Tests bestehen.
 name: Build
 
 on:
@@ -16,6 +16,9 @@ jobs:
 
       - name: Swift-Version anzeigen
         run: swift --version
+
+      - name: Automatische Tests
+        run: swift test
 
       - name: Universal-Build (Apple Silicon + Intel)
         run: ./build.sh --universal

@@ -33,7 +33,7 @@ import IOKit
 /// Das ist der aussagekräftigste Wert überhaupt: Wenig "freier" RAM ist auf
 /// macOS normal (freier RAM wird als Cache genutzt). Erst wenn der Druck
 /// steigt, wird der Speicher tatsächlich knapp.
-enum MemoryPressure: Sendable {
+enum MemoryPressure: String, Sendable, Codable {
     case normal, warning, critical, unknown
 
     /// Übersetzter Anzeigetext für das Badge in der Oberfläche.
@@ -254,6 +254,10 @@ func footprintsByResponsibleApp() -> [pid_t: AppFootprint] {
 
 /// Formatiert Bytes für die Anzeige, z. B. "4,2 GB" (Basis 1024, wie die
 /// Aktivitätsanzeige; Dezimalzeichen nach Systemsprache).
+/// Immer mit Zahl: "0 KB" statt "Zero KB" (Standardverhalten von macOS).
 func formatBytes(_ bytes: UInt64) -> String {
-    ByteCountFormatter.string(fromByteCount: Int64(bytes), countStyle: .memory)
+    let formatter = ByteCountFormatter()
+    formatter.countStyle = .memory
+    formatter.allowsNonnumericFormatting = false
+    return formatter.string(fromByteCount: Int64(bytes))
 }

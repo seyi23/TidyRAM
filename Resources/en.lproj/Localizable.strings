@@ -18,7 +18,6 @@
 "Datei-Cache" = "File cache";
 "Frei" = "Free";
 "Swap" = "Swap";
-"Verlauf (letzte Stunde)" = "History (last hour)";
 "Verlauf wird gesammelt …" = "Collecting history …";
 "Start" = "Start";
 "Ende" = "End";
@@ -73,7 +72,6 @@
 "Nie" = "Never";
 "Bei kritischem Speicherdruck" = "On critical memory pressure";
 "Schon bei erhöhtem Speicherdruck" = "Already on elevated memory pressure";
-"Höchstens alle 10 Minuten, mit der App, die gerade am meisten Speicher belegt." = "At most every 10 minutes, naming the app that currently uses the most memory.";
 "Automatisch freigeben" = "Free automatically";
 "Datei-Cache bei erhöhtem Speicherdruck automatisch freigeben" = "Automatically free the file cache on elevated memory pressure";
 "Höchstens alle" = "At most every";
@@ -111,7 +109,6 @@
 /* 1.4.0 – History */
 "%@ · %@ belegt · %@" = "%@ · %@ used · %@";
 "Bei Speicherdruck vorne: %@" = "Top app during memory pressure: %@";
-"Größter Verbraucher der letzten Stunde: %@ (bis %@)" = "Largest consumer in the last hour: %@ (up to %@)";
 
 /* 1.4.0 – Settings */
 "Steuerung per Link" = "Control via link";
@@ -121,3 +118,16 @@
 "2 Sekunden" = "2 seconds";
 "5 Sekunden" = "5 seconds";
 "10 Sekunden" = "10 seconds";
+
+/* 1.5.0 – History range, sparkline, swap warning, self usage */
+"Verlauf" = "History";
+"Zeitraum" = "Time range";
+"Größter Verbraucher im Zeitraum: %@ (bis %@)" = "Largest consumer in this period: %@ (up to %@)";
+"Mini-Grafik (letzte 30 Minuten)" = "Mini chart (last 30 minutes)";
+"Warnen, wenn Swap über" = "Warn when swap exceeds";
+"Aus" = "Off";
+"Speicherdruck: höchstens alle 10 Minuten. Swap: höchstens alle 30 Minuten. Jeweils mit der App, die gerade am meisten Speicher belegt." = "Memory pressure: at most every 10 minutes. Swap: at most every 30 minutes. Each naming the app that currently uses the most memory.";
+"Swap über %lld GB" = "Swap above %lld GB";
+"%@ sind auf die SSD ausgelagert. Der Arbeitsspeicher reicht gerade nicht aus." = "%@ swapped out to the SSD. There isn't enough memory right now.";
+"Eigenverbrauch" = "Own usage";
+"Speicher und durchschnittliche CPU-Last von TidyRAM selbst" = "Memory and average CPU load of TidyRAM itself";

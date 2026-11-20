@@ -267,25 +267,40 @@ struct ContentView: View {
     // MARK: 3. Verlauf
 
     /// Fläche = belegter Speicher in %. Gelb/rot hinterlegt = Zeiten mit
-    /// erhöhtem bzw. kritischem Speicherdruck.
+    /// erhöhtem bzw. kritischem Speicherdruck. Zeitraum umschaltbar 1/6/24 h.
     private var historyChart: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text("Verlauf (letzte Stunde)").font(.subheadline.weight(.semibold))
-            if monitor.history.count < 2 {
+        @Bindable var settings = monitor.settings
+        let range = settings.historyRange
+        let points = displayedHistory(range)
+
+        return VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                Text("Verlauf").font(.subheadline.weight(.semibold))
+                Spacer()
+                Picker("Zeitraum", selection: $settings.historyRange) {
+                    ForEach(HistoryRange.allCases) { Text(verbatim: $0.title).tag($0) }
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+                .controlSize(.mini)
+                .frame(width: 120)
+            }
+            .padding(.bottom, 6)   // Abstand, damit der Umschalter nicht auf "100%" sitzt
+            if points.count < 2 {
                 Text("Verlauf wird gesammelt …")
                     .font(.caption).foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, minHeight: 60, alignment: .center)
             } else {
                 Chart {
                     // Hintergrund-Streifen für Zeiten mit Speicherdruck.
-                    ForEach(pressureSpans) { span in
+                    ForEach(pressureSpans(points, bucket: range.bucket)) { span in
                         RectangleMark(xStart: .value("Start", span.start),
                                       xEnd: .value("Ende", span.end),
                                       yStart: .value("Min", 0),
                                       yEnd: .value("Max", 100))
                             .foregroundStyle(pressureColor(span.pressure).opacity(0.18))
                     }
-                    ForEach(monitor.history) { point in
+                    ForEach(points) { point in
                         AreaMark(x: .value("Zeit", point.date),
                                  y: .value("Belegt", point.usedFraction * 100))
                             .foregroundStyle(.linearGradient(colors: [.blue.opacity(0.5), .blue.opacity(0.05)],
@@ -302,7 +317,8 @@ struct ContentView: View {
                             .lineStyle(StrokeStyle(lineWidth: 1, dash: [2, 2]))
                         PointMark(x: .value("Zeit", hoverPoint.date),
                                   y: .value("Belegt", hoverPoint.usedFraction * 100))
-                            .foregroundStyle(pressureColor(hoverPoint.pressure) == .secondary ? .blue : pressureColor(hoverPoint.pressure))
+                            .foregroundStyle(hoverPoint.pressure == .normal || hoverPoint.pressure == .unknown
+                                             ? .blue : pressureColor(hoverPoint.pressure))
                             .symbolSize(30)
                     }
                 }
@@ -313,7 +329,8 @@ struct ContentView: View {
                             .onContinuousHover { phase in
                                 switch phase {
                                 case .active(let location):
-                                    hoverPoint = nearestPoint(at: location, proxy: proxy, geo: geo)
+                                    hoverPoint = nearestPoint(at: location, in: points, tolerance: max(30, range.bucket),
+                                                              proxy: proxy, geo: geo)
                                 case .ended:
                                     hoverPoint = nil
                                 }
@@ -321,8 +338,8 @@ struct ContentView: View {
                     }
                 }
                 .chartYScale(domain: 0...100)
-                // Immer die ganze letzte Stunde zeigen – neue Werte erscheinen rechts.
-                .chartXScale(domain: historyDomain)
+                // Immer den ganzen Zeitraum zeigen – neue Werte erscheinen rechts.
+                .chartXScale(domain: historyDomain(range))
                 .chartYAxis {
                     AxisMarks(values: [0, 50, 100]) { value in
                         AxisGridLine()
@@ -330,7 +347,7 @@ struct ContentView: View {
                     }
                 }
                 .chartXAxis {
-                    AxisMarks(values: .stride(by: .minute, count: 15)) {
+                    AxisMarks(values: axisStride(range)) {
                         AxisGridLine()
                         AxisValueLabel(format: .dateTime.hour().minute())
                     }
@@ -347,7 +364,7 @@ struct ContentView: View {
                                 Text(String(localized: "Größte App: \(name) mit \(formatBytes(hoverPoint.topAppBytes))"))
                             }
                         }
-                    } else if let summary = historySummary {
+                    } else if let summary = historySummary(points) {
                         Text(summary)
                     }
                 }
@@ -357,15 +374,33 @@ struct ContentView: View {
         }
     }
 
-    /// Findet den Messpunkt, der dem Mauszeiger am nächsten liegt (max. 30 s Abstand).
-    private func nearestPoint(at location: CGPoint, proxy: ChartProxy, geo: GeometryProxy) -> HistoryPoint? {
+    /// Messpunkte des gewählten Zeitraums, verdichtet auf höchstens ~360 Punkte.
+    private func displayedHistory(_ range: HistoryRange) -> [HistoryPoint] {
+        let end = monitor.history.last?.date ?? Date()
+        return monitor.history
+            .filter { end.timeIntervalSince($0.date) <= range.seconds }
+            .downsampled(bucket: range.bucket)
+    }
+
+    /// Abstand der Zeit-Beschriftungen: 15 min / 2 h / 6 h.
+    private func axisStride(_ range: HistoryRange) -> AxisMarkValues {
+        switch range {
+        case .hour1: .stride(by: .minute, count: 15)
+        case .hour6: .stride(by: .hour, count: 2)
+        case .hour24: .stride(by: .hour, count: 6)
+        }
+    }
+
+    /// Findet den Messpunkt, der dem Mauszeiger am nächsten liegt.
+    private func nearestPoint(at location: CGPoint, in points: [HistoryPoint], tolerance: TimeInterval,
+                              proxy: ChartProxy, geo: GeometryProxy) -> HistoryPoint? {
         guard let plotFrame = proxy.plotFrame else { return nil }
         let x = location.x - geo[plotFrame].origin.x
         guard let date: Date = proxy.value(atX: x),
-              let nearest = monitor.history.min(by: {
+              let nearest = points.min(by: {
                   abs($0.date.timeIntervalSince(date)) < abs($1.date.timeIntervalSince(date))
               }),
-              abs(nearest.date.timeIntervalSince(date)) <= 30 else { return nil }
+              abs(nearest.date.timeIntervalSince(date)) <= tolerance else { return nil }
         return nearest
     }
 
@@ -377,33 +412,33 @@ struct ContentView: View {
     }
 
     /// "Wer frisst Speicher?" – welche App bei Speicherdruck am häufigsten vorne
-    /// lag, sonst der größte Verbraucher der letzten Stunde.
-    private var historySummary: String? {
-        let pressured = monitor.history.filter { $0.pressure == .warning || $0.pressure == .critical }
+    /// lag, sonst der größte Verbraucher im gewählten Zeitraum.
+    private func historySummary(_ points: [HistoryPoint]) -> String? {
+        let pressured = points.filter { $0.pressure == .warning || $0.pressure == .critical }
         let counts = Dictionary(grouping: pressured.compactMap(\.topApp), by: { $0 }).mapValues(\.count)
         if let name = counts.max(by: { $0.value < $1.value })?.key {
             return String(localized: "Bei Speicherdruck vorne: \(name)")
         }
-        if let peak = monitor.history.max(by: { $0.topAppBytes < $1.topAppBytes }),
+        if let peak = points.max(by: { $0.topAppBytes < $1.topAppBytes }),
            let name = peak.topApp, peak.topAppBytes > 0 {
-            return String(localized: "Größter Verbraucher der letzten Stunde: \(name) (bis \(formatBytes(peak.topAppBytes)))")
+            return String(localized: "Größter Verbraucher im Zeitraum: \(name) (bis \(formatBytes(peak.topAppBytes)))")
         }
         return nil
     }
 
-    /// Zeitraum der x-Achse: die Stunde bis zum neuesten Messpunkt.
-    private var historyDomain: ClosedRange<Date> {
+    /// Zeitraum der x-Achse: bis zum neuesten Messpunkt.
+    private func historyDomain(_ range: HistoryRange) -> ClosedRange<Date> {
         let end = monitor.history.last?.date ?? Date()
-        return end.addingTimeInterval(-3600)...end
+        return end.addingTimeInterval(-range.seconds)...end
     }
 
     /// Fasst aufeinanderfolgende Messpunkte mit erhöhtem/kritischem Druck zu
     /// Zeitspannen zusammen (für die farbigen Hintergrundstreifen).
-    private var pressureSpans: [PressureSpan] {
+    private func pressureSpans(_ points: [HistoryPoint], bucket: TimeInterval) -> [PressureSpan] {
         var spans: [PressureSpan] = []
-        for (i, point) in monitor.history.enumerated()
+        for (i, point) in points.enumerated()
         where point.pressure == .warning || point.pressure == .critical {
-            let end = i + 1 < monitor.history.count ? monitor.history[i + 1].date : point.date.addingTimeInterval(10)
+            let end = i + 1 < points.count ? points[i + 1].date : point.date.addingTimeInterval(bucket)
             if let last = spans.last, last.pressure == point.pressure, last.end == point.date {
                 spans[spans.count - 1].end = end
             } else {
@@ -443,6 +478,7 @@ struct ContentView: View {
             }
             Text("Leert nur den Datei-Cache. Programme und ihre Daten bleiben unberührt.")
                 .font(.caption2).foregroundStyle(.tertiary)
+                .fixedSize(horizontal: false, vertical: true)   // umbrechen statt abschneiden
             // Zeigt, ob die sudoers-Regel aktiv ist (siehe README).
             Label(monitor.passwordless ? "Ohne Passwort eingerichtet" : "Fragt nach Passwort",
                   systemImage: monitor.passwordless ? "checkmark.shield" : "lock")

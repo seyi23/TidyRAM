@@ -28,6 +28,9 @@ jobs:
           echo "Tag: $TAG, build.sh: $BUILD_VERSION"
           test "$TAG" = "$BUILD_VERSION"
 
+      - name: Automatische Tests
+        run: swift test
+
       - name: Universal-Build
         run: ./build.sh --universal
 
@@ -59,3 +62,30 @@ jobs:
           EOF
           gh release create "$GITHUB_REF_NAME" "TidyRAM-$VERSION.zip" \
             --title "TidyRAM $VERSION" --notes-file notes.md
+
+      # Homebrew-Tap (seyi23/homebrew-tidyram) automatisch auf die neue Version
+      # setzen. Braucht das Secret HOMEBREW_TAP_TOKEN (Fine-grained Token mit
+      # "Contents: Read and write" NUR für das Tap-Repository, siehe CONTRIBUTING.md).
+      # Fehlt das Secret, wird der Schritt übersprungen – dann von Hand mit
+      # scripts/update-homebrew.sh aktualisieren.
+      - name: Homebrew-Tap aktualisieren
+        env:
+          TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+        run: |
+          if [ -z "$TAP_TOKEN" ]; then
+            echo "::notice::HOMEBREW_TAP_TOKEN fehlt – Tap bitte mit ./scripts/update-homebrew.sh aktualisieren."
+            exit 0
+          fi
+          VERSION="${GITHUB_REF_NAME#v}"
+          SHA=$(shasum -a 256 "TidyRAM-$VERSION.zip" | awk '{print $1}')
+          git clone --quiet "https://x-access-token:${TAP_TOKEN}@github.com/seyi23/homebrew-tidyram.git" tap
+          cd tap
+          sed -i '' -e "s/^  version \".*\"/  version \"$VERSION\"/" \
+                    -e "s/^  sha256 \".*\"/  sha256 \"$SHA\"/" Casks/tidyram.rb
+          if git diff --quiet; then echo "Tap ist bereits aktuell."; exit 0; fi
+          # Commit als GitHub-Actions-Bot (anonyme Adresse, keine privaten Daten).
+          git -c user.name="github-actions[bot]" \
+              -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+              commit --quiet -am "tidyram $VERSION"
+          git push --quiet
+          echo "Homebrew-Tap auf $VERSION aktualisiert (sha256 $SHA)."

@@ -24,7 +24,8 @@ Eine schlanke Menüleisten-App für macOS, die den Arbeitsspeicher übersichtlic
 - **Plattform:** macOS 14 (Sonoma) oder neuer, Apple Silicon und Intel (getestet auf macOS 27.2, Apple Silicon)
 - **Sprachen der App:** Deutsch und Englisch (folgt der Systemsprache)
 - **Technik:** Swift 6 / SwiftUI, keine externen Abhängigkeiten
-- **Version:** 1.4.0 ([Änderungen](CHANGELOG.md))
+- **Version:** 1.5.0 ([Änderungen](CHANGELOG.md))
+- **Projektseite:** [seyi23.github.io/TidyRAM](https://seyi23.github.io/TidyRAM/de.html)
 - **Download:** [neueste Version](https://github.com/seyi23/TidyRAM/releases/latest) oder per [Homebrew](#variante-2-homebrew) ([Tap](https://github.com/seyi23/homebrew-tidyram))
 - **Lizenz:** MIT (kostenlos, Open Source)
 
@@ -57,21 +58,22 @@ Eine schlanke Menüleisten-App für macOS, die den Arbeitsspeicher übersichtlic
 
 | Funktion | Beschreibung |
 |---|---|
-| **Live-Anzeige in der Menüleiste** | Chip-Symbol mit belegtem Speicher in Prozent oder GB, einem Farbpunkt für den Speicherdruck oder nur dem Symbol. Alle 2 Sekunden aktualisiert. |
+| **Live-Anzeige in der Menüleiste** | Chip-Symbol mit belegtem Speicher in Prozent oder GB, einem Farbpunkt für den Speicherdruck, einer **Mini-Grafik der letzten 30 Minuten** oder nur dem Symbol. |
 | **Speicherübersicht** | Farbiger Balken und Legende: Apps, Reserviert, Komprimiert, Datei-Cache, Frei und Swap. Gleiche Werte wie in der Aktivitätsanzeige. |
 | **Details per Klick** | Jeder Bereich lässt sich aufklappen: Erklärung in einfachen Worten plus Detailwerte, z. B. Grafikspeicher (GPU) bei *Reserviert*, Kompressionsfaktor bei *Komprimiert*, ausgelagerte Datenmenge bei *Swap*. |
 | **Speicherdruck** | Badge *Normal*, *Erhöht* oder *Kritisch*, direkt vom macOS-Kernel. |
-| **Verlaufsgrafik** | Belegter Speicher der letzten Stunde. Zeiten mit erhöhtem oder kritischem Druck sind gelb bzw. rot hinterlegt. |
+| **Verlaufsgrafik** | Belegter Speicher der letzten **1, 6 oder 24 Stunden**. Zeiten mit erhöhtem oder kritischem Druck sind gelb bzw. rot hinterlegt. Der Verlauf wird lokal gespeichert und übersteht einen Neustart. |
 | **„Wer frisst Speicher?“** | Der Verlauf merkt sich zu jedem Zeitpunkt die größte App. Mit der Maus über die Grafik fahren zeigt Uhrzeit, Belegung, Speicherdruck und Spitzenreiter. Darunter steht, wer bei Speicherdruck vorne lag. |
 | **Ungenutzten RAM freigeben** | Leert den Datei-Cache mit Apples `purge` und zeigt an, wie viel frei wurde. |
 | **Tastenkürzel ⌃⌥⌘R** | Gibt RAM von überall frei, ohne das Fenster zu öffnen. Das Ergebnis kommt als Mitteilung. |
 | **Steuerung per Link** | `open -g tidyram://free` gibt RAM aus dem Terminal, aus Kurzbefehlen, Raycast, Alfred oder Skripten frei. Siehe [Steuerung per Link und Terminal](#steuerung-per-link-und-terminal). |
-| **Mitteilungen** | Hinweis, wenn der Speicher knapp wird, mit der App, die gerade am meisten belegt. Höchstens alle 10 Minuten. |
+| **Mitteilungen** | Hinweis, wenn der Speicher knapp wird oder der **Swap eine Grenze überschreitet** (2, 4, 8 oder 16 GB), jeweils mit der App, die gerade am meisten belegt. |
 | **Automatisch freigeben (optional)** | Bei erhöhtem Speicherdruck den Cache selbst leeren, höchstens alle 15, 30 oder 60 Minuten. Standardmäßig aus. |
 | **Ohne Passwort (optional)** | Mit einer eng begrenzten sudo-Regel läuft das Freigeben ohne Passwortdialog. Die App zeigt an, ob das aktiv ist. |
 | **Größte Apps** | Die 8 Programme mit dem größten Speicherverbrauch, **inklusive aller Tabs und Hilfsprozesse** (Safari, Chrome, Firefox, Electron-Apps). Mit ✕ beendest du sie regulär (wie ⌘Q). |
 | **Einstellungsfenster** | Alle Optionen an einem Ort, siehe [Einstellungen](#einstellungen). |
 | **Aktualisierungs-Intervall** | Alle 2, 5 oder 10 Sekunden. Größere Abstände sparen auf MacBooks etwas Akku. |
+| **Eigenverbrauch** | Unter *Über TidyRAM* steht, wie viel Speicher und CPU TidyRAM selbst braucht (typisch etwa 20–35 MB und unter 1 % CPU). |
 | **Bei Anmeldung starten** | Autostart über die offizielle macOS-API (`SMAppService`). |
 
 ---
@@ -88,7 +90,7 @@ TidyRAM ist bewusst **vorsichtig** gebaut:
 | beendet Apps nur auf Klick und regulär (die App kann nach dem Sichern fragen) | erzwingt kein Beenden (kein `kill -9`, kein `forceTerminate`) |
 | zeigt den echten Speicherdruck an | manipuliert keinen Speicher fremder Prozesse |
 | führt mit Admin-Rechten nur einen einzigen, fest eingetragenen Befehl aus | installiert keine Hintergrunddienste oder Kernel-Erweiterungen |
-| speichert Einstellungen nur lokal | greift nicht aufs Netzwerk zu und sammelt keine Daten |
+| speichert Einstellungen und Verlauf nur lokal auf deinem Mac | greift nicht aufs Netzwerk zu und sammelt keine Daten |
 
 **Wann hilft das Freigeben wirklich?** Vor allem kurz vor einer speicherhungrigen Aufgabe (Video-Export, VM, große Builds), oder um zu sehen, wie viel RAM wirklich gebraucht wird.
 
@@ -174,7 +176,7 @@ Klicke auf das **Chip-Symbol** in der Menüleiste. Es öffnet sich ein Fenster m
 
 1. **Kopf:** belegter Speicher („11,1 GB von 16 GB belegt“), das Badge mit dem Speicherdruck und das **Zahnrad** für die [Einstellungen](#einstellungen).
 2. **Balken und Legende:** die Aufteilung des RAM, siehe [Speicherbereiche](#die-speicherbereiche-erklärt). **Ein Klick auf einen Bereich** klappt eine Erklärung mit Detailwerten auf, ein zweiter Klick schließt sie wieder.
-3. **Verlauf (letzte Stunde):** belegter Speicher in Prozent. Gelb bzw. rot hinterlegt sind Zeiten mit erhöhtem oder kritischem Speicherdruck. Die Grafik füllt sich, solange TidyRAM läuft (alle 10 Sekunden ein Messpunkt).
+3. **Verlauf:** belegter Speicher in Prozent. Oben rechts schaltest du zwischen **1 h, 6 h und 24 h** um. Gelb bzw. rot hinterlegt sind Zeiten mit erhöhtem oder kritischem Speicherdruck. Alle 10 Sekunden entsteht ein Messpunkt. Der Verlauf wird gespeichert und übersteht einen Neustart von TidyRAM.
     - **Maus über die Grafik:** zeigt für diesen Zeitpunkt Uhrzeit, Belegung, Speicherdruck und die größte App („Wer frisst Speicher?“).
     - **Darunter** steht, welche App bei Speicherdruck am häufigsten vorne lag, oder ohne Speicherdruck der größte Verbraucher der letzten Stunde.
 4. **„Ungenutzten RAM freigeben“:** leert den Datei-Cache. Darunter stehen
@@ -199,15 +201,18 @@ Erreichbar über das **Zahnrad** im TidyRAM-Fenster. Alle Änderungen gelten sof
 
 | Bereich | Optionen |
 |---|---|
-| **Menüleiste** | Was neben dem Symbol steht: Prozent, GB, Farbpunkt für den Speicherdruck (grün, gelb, rot) oder nur das Symbol |
-| **Mitteilungen** | *Nie*, *Bei kritischem Speicherdruck* (Standard) oder *Schon bei erhöhtem Speicherdruck*. Beim ersten Mal fragt macOS, ob TidyRAM Mitteilungen senden darf |
+| **Menüleiste** | Was neben dem Symbol steht: Prozent, GB, Farbpunkt für den Speicherdruck (grün, gelb, rot), Mini-Grafik der letzten 30 Minuten oder nur das Symbol. Die Mini-Grafik zoomt auf den tatsächlichen Wertebereich, damit Schwankungen sichtbar werden |
+| **Mitteilungen** | *Nie*, *Bei kritischem Speicherdruck* (Standard) oder *Schon bei erhöhtem Speicherdruck*. Dazu die **Swap-Warnung**: aus, 2, 4 (Standard), 8 oder 16 GB. Sie meldet sich nur beim Überschreiten der Grenze, höchstens alle 30 Minuten. Beim ersten Mal fragt macOS, ob TidyRAM Mitteilungen senden darf |
 | **Automatisch freigeben** | Aus (Standard) oder an, mit Mindestabstand 15, 30 oder 60 Minuten. **Nur verfügbar, wenn [Freigeben ohne Passwort](#passwortabfrage-problem-und-workaround) eingerichtet ist.** Sonst würde unvermittelt ein Passwortdialog erscheinen |
 | **Tastenkürzel** | ⌃⌥⌘R an (Standard) oder aus |
 | **Steuerung per Link** | Zeigt den Terminal-Befehl `open -g tidyram://free` zum Kopieren |
 | **Allgemein** | Aktualisieren alle 2 (Standard), 5 oder 10 Sekunden. Bei Anmeldung starten |
-| **Über TidyRAM** | Version, Lizenz, Link zum Repository |
+| **Über TidyRAM** | Version, Lizenz, **Eigenverbrauch** (Speicher und CPU von TidyRAM selbst), Link zum Repository |
 
-Gespeichert werden die Einstellungen lokal in `~/Library/Preferences/local.tidyram.plist`.
+Gespeichert wird nur lokal auf deinem Mac:
+
+- Einstellungen in `~/Library/Preferences/local.tidyram.plist`
+- Verlauf in `~/Library/Application Support/TidyRAM/history.json`: Uhrzeit, Belegung, Speicherdruck und Name der jeweils größten App, höchstens 24 Stunden (unter 1 MB). Ältere Einträge werden automatisch gelöscht.
 
 ---
 
@@ -482,7 +487,10 @@ TidyRAM/
 │   ├── Cleaner.swift           Führt purge aus (sudo -n oder Passwortdialog)
 │   ├── Notifier.swift          macOS-Mitteilungen
 │   ├── GlobalHotKey.swift      Tastenkürzel ⌃⌥⌘R
-│   └── URLCommands.swift       Steuerung per Link (tidyram://free)
+│   ├── URLCommands.swift       Steuerung per Link (tidyram://free)
+│   ├── History.swift           Verlauf: Zeiträume, Verdichten, Speichern
+│   └── Helpers.swift           Reine Rechenfunktionen (Mini-Grafik, Swap-Warnung, CPU)
+├── Tests/TidyRAMTests/         Automatische Tests (swift test)
 ├── Resources/
 │   ├── AppIcon.icns            App-Symbol (erzeugt von scripts/make-icon.swift)
 │   ├── de.lproj/               Deutsch (Entwicklungssprache)
@@ -495,11 +503,12 @@ TidyRAM/
 │   ├── make-icon.swift         Zeichnet das App-Symbol per Code
 │   ├── make-pdf.sh             README → docs/TidyRAM.pdf und docs/TidyRAM-en.pdf
 │   └── update-homebrew.sh      Aktualisiert die Homebrew-Formel nach einem Release
-├── docs/                       Symbol, Screenshots, PDF-Dokumentation (DE + EN)
+├── docs/                       Projektseite (GitHub Pages), Symbol, Screenshots, PDFs
 ├── .github/
 │   ├── workflows/              build.yml (jeder Push), release.yml (jedes Versions-Tag)
 │   ├── ISSUE_TEMPLATE/         Vorlagen für Fehlermeldungen und Ideen
 │   └── pull_request_template.md
+├── Package.swift               Swift Package: swift test, swift build, in Xcode öffnen
 ├── build.sh                    Kompiliert und erzeugt build/TidyRAM.app
 ├── CHANGELOG.md                Änderungen pro Version
 ├── CONTRIBUTING.md             Anleitung zum Mitmachen
@@ -520,7 +529,10 @@ TidyRAM/
 | Speicherdruck | `sysctl kern.memorystatus_vm_pressure_level` (1/2/4) |
 | Swap | `sysctl vm.swapusage` |
 | App-Verbrauch | `proc_pid_rusage(RUSAGE_INFO_V4).ri_phys_footprint` für **alle** Prozesse (`proc_listallpids`), summiert pro verantwortlicher App über `responsibility_get_pid_responsible_for_pid`. Die Funktion ist nicht offiziell dokumentiert und wird deshalb zur Laufzeit per `dlsym` gesucht. Fehlt sie, zählt jeder Prozess für sich. Dauer: ca. 5 ms |
-| Verlauf | Ein Messpunkt alle 10 s mit Belegung, Speicherdruck und größter App, höchstens 1 Stunde (360 Punkte) im Speicher, dargestellt mit Swift Charts. Maus-Details per `chartOverlay` + `onContinuousHover`. Nichts wird auf die Festplatte geschrieben |
+| Verlauf | Ein Messpunkt alle 10 s mit Belegung, Speicherdruck und größter App, höchstens 24 Stunden (8 640 Punkte). Für die Anzeige auf ~360 Punkte verdichtet (Durchschnitt, schlimmster Druck, größte App). Gespeichert als JSON, höchstens einmal pro Minute und beim Beenden, atomar geschrieben. Maus-Details per `chartOverlay` + `onContinuousHover` |
+| Mini-Grafik | Vorlagen-Bild (`NSImage.isTemplate`), passt sich heller und dunkler Menüleiste an. Zoomt auf den Wertebereich, Mindestspanne 20 % |
+| Eigenverbrauch | Speicher über `proc_pid_rusage`, CPU über `getrusage(RUSAGE_SELF)`, gleitender Mittelwert ohne Startspitze |
+| Tests | Swift Testing, `swift test`. Prüft Kernel-Werte, Prozess-Zuordnung, Mitteilungs- und Swap-Regeln, Verdichten und Speichern des Verlaufs, Mini-Grafik, Link-Befehle. Läuft bei jedem Push in GitHub Actions |
 | Detailwerte | Kompressor und Swap aus `host_statistics64` (`total_uncompressed_pages_in_compressor`, `swapins`, `swapouts`), Swap-Größe aus `vm.swapusage`, Grafikspeicher aus der IORegistry (`IOAccelerator` → `PerformanceStatistics` → „In use system memory“). Alles ohne Admin-Rechte |
 | Steuerung per Link | `CFBundleURLTypes` mit Schema `tidyram`, Apple Event `kAEGetURL` im `AppDelegate` |
 | Protokoll | `os.Logger`, Subsystem `local.tidyram` |
@@ -535,7 +547,8 @@ TidyRAM/
 | Build | Direkt mit `swiftc`, ohne Xcode-Projekt, ad-hoc signiert. `--universal` erzeugt per `lipo` eine Version für arm64 und x86_64 |
 | App-Symbol | Per CoreGraphics gezeichnet (`scripts/make-icon.swift`), mit `iconutil` zu `.icns` gebündelt |
 | CI / Releases | GitHub Actions: `build.yml` baut bei jedem Push. `release.yml` baut bei einem Tag `vX.Y.Z` und veröffentlicht `TidyRAM-X.Y.Z.zip` mit dem passenden Abschnitt aus `CHANGELOG.md` |
-| Homebrew | Eigenes Tap-Repository [seyi23/homebrew-tidyram](https://github.com/seyi23/homebrew-tidyram), aktualisiert mit `scripts/update-homebrew.sh` |
+| Homebrew | Eigenes Tap-Repository [seyi23/homebrew-tidyram](https://github.com/seyi23/homebrew-tidyram). Wird beim Release automatisch aktualisiert (mit Secret `HOMEBREW_TAP_TOKEN`), sonst mit `scripts/update-homebrew.sh` |
+| Projektseite | Statisches HTML/CSS in `docs/` (Deutsch und Englisch), veröffentlicht über GitHub Pages |
 
 ---
 
@@ -545,7 +558,7 @@ TidyRAM/
 ./scripts/uninstall.sh
 ```
 
-Das Skript beendet die App, löscht `/Applications/TidyRAM.app` und entfernt die sudo-Regel (falls vorhanden). Schalte vorher in der App *Bei Anmeldung starten* aus, oder entferne den Eintrag unter *Systemeinstellungen → Allgemein → Anmeldeobjekte*.
+Das Skript beendet die App, löscht `/Applications/TidyRAM.app`, den gespeicherten Verlauf und die Einstellungen und entfernt die sudo-Regel (falls vorhanden). Schalte vorher in der App *Bei Anmeldung starten* aus, oder entferne den Eintrag unter *Systemeinstellungen → Allgemein → Anmeldeobjekte*.
 
 Per Homebrew installiert:
 
@@ -559,7 +572,8 @@ brew uninstall --cask --zap tidyram
 
 - **Wirkung ist vorübergehend:** macOS füllt den Datei-Cache nach dem Freigeben wieder, und das ist so gewollt.
 - **Nicht notarisiert:** Deshalb die Warnung beim ersten Start und im Passwortdialog, siehe [oben](#passwortabfrage-problem-und-workaround).
-- **Verlauf nur im Arbeitsspeicher:** Nach einem Neustart von TidyRAM beginnt die Grafik von vorn.
+- **Verlauf beim harten Beenden:** Wird TidyRAM gewaltsam beendet (z. B. mit `kill`), fehlt höchstens die letzte Minute. Normales Beenden, Abmelden und Ausschalten sichern alles.
+- **Mini-Grafik am Anfang:** Sie braucht ein paar Minuten Messdaten. Bis dahin steht dort die Prozentzahl.
 - **Grafikspeicher nicht überall:** Manche Macs (vor allem Intel mit eigener Grafikkarte) liefern den GPU-Wert nicht. Dann fehlt nur diese Detailzeile.
 - **Tastenkürzel belegt?** Nutzt eine andere App bereits ⌃⌥⌘R, kann TidyRAM es nicht registrieren. Dann bitte im Einstellungsfenster abschalten.
 - **Nach einem neuen Build** musst du die App erneut nach `/Applications` kopieren (`./scripts/install.sh` erledigt das).
@@ -601,7 +615,7 @@ Fehler gefunden oder eine Idee? [Issue öffnen](https://github.com/seyi23/TidyRA
 
 Fehlermeldungen, Ideen, Übersetzungen und Pull Requests sind willkommen. Alles Nötige steht in [CONTRIBUTING.md](CONTRIBUTING.md), unter anderem:
 
-- wie du baust und testest,
+- wie du baust und die automatischen Tests ausführst (`swift test`),
 - wie du eine **weitere Sprache** hinzufügst (eine Datei kopieren und übersetzen),
 - wie eine neue Version veröffentlicht wird.
 

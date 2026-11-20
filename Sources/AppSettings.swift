@@ -18,6 +18,7 @@ enum MenuBarStyle: String, CaseIterable, Identifiable {
     case percent       // "68%"
     case usedGB        // "10,8 GB"
     case pressureDot   // farbiger Punkt: grün / gelb / rot
+    case sparkline     // Mini-Verlauf der letzten 30 Minuten
     case iconOnly      // nur das Symbol
 
     var id: String { rawValue }
@@ -27,6 +28,7 @@ enum MenuBarStyle: String, CaseIterable, Identifiable {
         case .percent: String(localized: "Belegter Speicher in Prozent")
         case .usedGB: String(localized: "Belegter Speicher in GB")
         case .pressureDot: String(localized: "Farbpunkt für den Speicherdruck")
+        case .sparkline: String(localized: "Mini-Grafik (letzte 30 Minuten)")
         case .iconOnly: String(localized: "Nur das Symbol")
         }
     }
@@ -69,6 +71,8 @@ final class AppSettings {
         static let autoCleanMinutes = "autoCleanMinutes"
         static let hotKeyEnabled = "hotKeyEnabled"
         static let refreshSeconds = "refreshSeconds"
+        static let historyRange = "historyRange"
+        static let swapWarningGB = "swapWarningGB"
     }
 
     /// Anzeige in der Menüleiste. Standard: Prozent.
@@ -104,6 +108,16 @@ final class AppSettings {
         didSet { defaults.set(refreshSeconds, forKey: Key.refreshSeconds) }
     }
 
+    /// Zeitraum der Verlaufsgrafik. Standard: 1 Stunde.
+    var historyRange: HistoryRange {
+        didSet { defaults.set(historyRange.rawValue, forKey: Key.historyRange) }
+    }
+
+    /// Mitteilung, wenn der Swap diese Grenze (GB) überschreitet. 0 = aus. Standard: 4.
+    var swapWarningGB: Int {
+        didSet { defaults.set(swapWarningGB, forKey: Key.swapWarningGB) }
+    }
+
     init() {
         // Gespeicherte Werte laden, sonst die Standardwerte verwenden.
         menuBarStyle = MenuBarStyle(rawValue: defaults.string(forKey: Key.menuBarStyle) ?? "") ?? .percent
@@ -114,5 +128,7 @@ final class AppSettings {
         hotKeyEnabled = defaults.object(forKey: Key.hotKeyEnabled) as? Bool ?? true
         let seconds = defaults.integer(forKey: Key.refreshSeconds)
         refreshSeconds = [2, 5, 10].contains(seconds) ? seconds : 2
+        historyRange = HistoryRange(rawValue: defaults.integer(forKey: Key.historyRange)) ?? .hour1
+        swapWarningGB = defaults.object(forKey: Key.swapWarningGB) as? Int ?? 4
     }
 }

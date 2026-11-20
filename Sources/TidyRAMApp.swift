@@ -39,7 +39,7 @@ struct TidyRAMApp: App {
                 .environment(monitor)
                 .environment(settings)
         } label: {
-            MenuBarLabel(stats: monitor.stats, style: settings.menuBarStyle)
+            MenuBarLabel(stats: monitor.stats, history: monitor.history, style: settings.menuBarStyle)
         }
         // `.window` statt `.menu`, damit wir ein frei gestaltetes Fenster mit
         // Balken, Grafik, Liste und Buttons zeigen können.
@@ -56,6 +56,7 @@ struct TidyRAMApp: App {
 /// Was dauerhaft in der Menüleiste steht – je nach Einstellung.
 struct MenuBarLabel: View {
     let stats: MemoryStats
+    let history: [HistoryPoint]
     let style: MenuBarStyle
 
     var body: some View {
@@ -71,6 +72,17 @@ struct MenuBarLabel: View {
                 // Menüleisten-Symbole werden normalerweise einfarbig dargestellt.
                 // Ein NSImage mit isTemplate = false behält seine Farbe.
                 Image(nsImage: dotImage(NSColor(pressureColor(stats.pressure))))
+            case .sparkline:
+                // Letzte 30 Minuten, verdichtet auf 1 Punkt pro Minute.
+                let end = history.last?.date ?? Date()
+                let values = history.filter { end.timeIntervalSince($0.date) <= 1800 }
+                    .downsampled(bucket: 60).map(\.usedFraction)
+                if values.count > 1 {
+                    Image(nsImage: Sparkline.image(values: values))
+                } else {
+                    // Noch zu wenig Daten → vorerst Prozent anzeigen.
+                    Text(verbatim: "\(Int((stats.usedFraction * 100).rounded()))%")
+                }
             case .iconOnly:
                 EmptyView()
             }

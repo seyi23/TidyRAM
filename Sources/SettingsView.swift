@@ -34,10 +34,14 @@ struct SettingsView: View {
                         Text(level.title).tag(level)
                     }
                 }
+                Picker("Warnen, wenn Swap über", selection: $settings.swapWarningGB) {
+                    Text("Aus").tag(0)
+                    ForEach([2, 4, 8, 16], id: \.self) { Text(verbatim: "\($0) GB").tag($0) }
+                }
             } header: {
                 Text("Mitteilungen")
             } footer: {
-                Text("Höchstens alle 10 Minuten, mit der App, die gerade am meisten Speicher belegt.")
+                Text("Speicherdruck: höchstens alle 10 Minuten. Swap: höchstens alle 30 Minuten. Jeweils mit der App, die gerade am meisten Speicher belegt.")
                     .font(.caption).foregroundStyle(.secondary)
             }
 
@@ -100,6 +104,11 @@ struct SettingsView: View {
             Section("Über TidyRAM") {
                 LabeledContent("Version", value: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "–")
                 LabeledContent("Lizenz") { Text("MIT – kostenlos & Open Source") }
+                LabeledContent("Eigenverbrauch") {
+                    Text(verbatim: "\(formatBytes(monitor.selfFootprint)) · \(monitor.selfCPUPercent.formatted(.number.precision(.fractionLength(1)))) % CPU")
+                        .monospacedDigit()
+                }
+                .help("Speicher und durchschnittliche CPU-Last von TidyRAM selbst")
                 Link(destination: URL(string: "https://github.com/seyi23/TidyRAM")!) {
                     Label { Text(verbatim: "github.com/seyi23/TidyRAM") } icon: { Image(systemName: "link") }
                 }

@@ -24,7 +24,8 @@ A lightweight macOS menu bar app that shows your memory usage at a glance and sa
 - **Platform:** macOS 14 (Sonoma) or later, Apple Silicon and Intel (tested on macOS 27.2, Apple Silicon)
 - **App languages:** English and German (follows your system language)
 - **Tech:** Swift 6 / SwiftUI, no external dependencies
-- **Version:** 1.4.0 ([changelog](CHANGELOG.md), in German)
+- **Version:** 1.5.0 ([changelog](CHANGELOG.md), in German)
+- **Website:** [seyi23.github.io/TidyRAM](https://seyi23.github.io/TidyRAM/)
 - **Download:** [latest release](https://github.com/seyi23/TidyRAM/releases/latest) or via [Homebrew](#option-2-homebrew) ([tap](https://github.com/seyi23/homebrew-tidyram))
 - **License:** MIT (free, open source)
 
@@ -57,21 +58,22 @@ A lightweight macOS menu bar app that shows your memory usage at a glance and sa
 
 | Feature | Description |
 |---|---|
-| **Live menu bar display** | Chip icon with used memory in percent or GB, a colored dot for memory pressure, or the icon only. Updated every 2 seconds. |
+| **Live menu bar display** | Chip icon with used memory in percent or GB, a colored dot for memory pressure, a **mini chart of the last 30 minutes**, or the icon only. |
 | **Memory overview** | Colored bar and legend: Apps, Wired, Compressed, File cache, Free and Swap. Same numbers as Activity Monitor. |
 | **Details on click** | Each category expands into a plain-language explanation plus details, e.g. graphics memory (GPU) for *Wired*, compression ratio for *Compressed*, total swapped data for *Swap*. |
 | **Memory pressure** | *Normal*, *Elevated* or *Critical* badge, straight from the macOS kernel. |
-| **History chart** | Used memory over the last hour. Periods of elevated or critical pressure are shaded yellow or red. |
+| **History chart** | Used memory over the last **1, 6 or 24 hours**. Periods of elevated or critical pressure are shaded yellow or red. The history is stored locally and survives a restart. |
 | **"Who's eating memory?"** | The history remembers the largest app at every point in time. Hover over the chart to see time, usage, pressure and the top app. Below it you see which app led during memory pressure. |
 | **Free unused RAM** | Clears the file cache with Apple's `purge` and shows how much was freed. |
 | **Shortcut ⌃⌥⌘R** | Frees RAM from anywhere without opening the window. The result appears as a notification. |
 | **Control via link** | `open -g tidyram://free` frees RAM from Terminal, Shortcuts, Raycast, Alfred or scripts. See [Control via link and Terminal](#control-via-link-and-terminal). |
-| **Notifications** | Alerts you when memory gets low, naming the app that uses the most. At most every 10 minutes. |
+| **Notifications** | Alerts you when memory gets low or **swap passes a limit** (2, 4, 8 or 16 GB), each naming the app that uses the most. |
 | **Free automatically (optional)** | Clears the cache on elevated memory pressure, at most every 15, 30 or 60 minutes. Off by default. |
 | **No password (optional)** | A narrowly scoped sudo rule lets freeing run without a password dialog. The app shows whether it's active. |
 | **Largest apps** | The 8 apps using the most memory, **including all tabs and helper processes** (Safari, Chrome, Firefox, Electron apps). Click ✕ to quit one normally (like ⌘Q). |
 | **Settings window** | All options in one place, see [Settings](#settings). |
 | **Refresh interval** | Every 2, 5 or 10 seconds. Longer intervals save a little battery on MacBooks. |
+| **Own usage** | *About TidyRAM* shows how much memory and CPU TidyRAM itself uses (typically about 20–35 MB and under 1% CPU). |
 | **Launch at login** | Via the official macOS API (`SMAppService`). |
 
 ---
@@ -88,7 +90,7 @@ TidyRAM is deliberately **cautious**:
 | quits apps only on click and normally (the app can ask to save) | never force-quits (no `kill -9`, no `forceTerminate`) |
 | shows the real memory pressure | never touches other processes' memory |
 | runs exactly one hard-coded command with admin rights | installs no background services or kernel extensions |
-| stores settings locally only | has no network access and collects no data |
+| stores settings and history locally on your Mac only | has no network access and collects no data |
 
 **When does freeing really help?** Mostly right before a memory-hungry task (video export, VM, large builds), or to see how much RAM is really needed.
 
@@ -174,7 +176,7 @@ Click the **chip icon** in the menu bar. A window opens with:
 
 1. **Header:** used memory ("11.1 GB of 16 GB used"), the memory pressure badge and the **gear** for [Settings](#settings).
 2. **Bar and legend:** how RAM is split up, see [Memory categories](#memory-categories-explained). **Click a category** to expand an explanation with details, click again to collapse it.
-3. **History (last hour):** used memory in percent. Periods of elevated or critical pressure are shaded yellow or red. The chart fills up while TidyRAM is running (one data point every 10 seconds).
+3. **History:** used memory in percent. Switch between **1 h, 6 h and 24 h** at the top right. Periods of elevated or critical pressure are shaded yellow or red. One data point is recorded every 10 seconds. The history is saved and survives a restart of TidyRAM.
     - **Hover over the chart:** shows time, usage, memory pressure and the largest app at that moment ("who's eating memory?").
     - **Below it** you see which app led most often during memory pressure, or, without pressure, the largest consumer of the last hour.
 4. **"Free unused RAM":** clears the file cache. Below it you see
@@ -199,15 +201,18 @@ Open them with the **gear** in the TidyRAM window. All changes apply immediately
 
 | Section | Options |
 |---|---|
-| **Menu bar** | What's shown next to the icon: percent, GB, a colored dot for memory pressure (green, yellow, red), or the icon only |
-| **Notifications** | *Never*, *On critical memory pressure* (default) or *Already on elevated memory pressure*. macOS asks once whether TidyRAM may send notifications |
+| **Menu bar** | What's shown next to the icon: percent, GB, a colored dot for memory pressure (green, yellow, red), a mini chart of the last 30 minutes, or the icon only. The mini chart zooms to the actual value range so changes are visible |
+| **Notifications** | *Never*, *On critical memory pressure* (default) or *Already on elevated memory pressure*. Plus the **swap warning**: off, 2, 4 (default), 8 or 16 GB. It only fires when the limit is crossed, at most every 30 minutes. macOS asks once whether TidyRAM may send notifications |
 | **Free automatically** | Off (default) or on, at most every 15, 30 or 60 minutes. **Only available if [freeing without password](#password-prompt-problem-and-workaround) is set up.** Otherwise a password dialog would pop up out of nowhere |
 | **Keyboard shortcut** | ⌃⌥⌘R on (default) or off |
 | **Control via link** | Shows the Terminal command `open -g tidyram://free` to copy |
 | **General** | Refresh every 2 (default), 5 or 10 seconds. Launch at login |
-| **About TidyRAM** | Version, license, link to the repository |
+| **About TidyRAM** | Version, license, **own usage** (memory and CPU of TidyRAM itself), link to the repository |
 
-Settings are stored locally in `~/Library/Preferences/local.tidyram.plist`.
+Everything is stored locally on your Mac only:
+
+- Settings in `~/Library/Preferences/local.tidyram.plist`
+- History in `~/Library/Application Support/TidyRAM/history.json`: time, usage, memory pressure and the name of the largest app, at most 24 hours (under 1 MB). Older entries are removed automatically.
 
 ---
 
@@ -482,7 +487,10 @@ TidyRAM/
 │   ├── Cleaner.swift           Runs purge (sudo -n or password dialog)
 │   ├── Notifier.swift          macOS notifications
 │   ├── GlobalHotKey.swift      Keyboard shortcut ⌃⌥⌘R
-│   └── URLCommands.swift       Control via link (tidyram://free)
+│   ├── URLCommands.swift       Control via link (tidyram://free)
+│   ├── History.swift           History: ranges, downsampling, storage
+│   └── Helpers.swift           Pure functions (mini chart, swap warning, CPU)
+├── Tests/TidyRAMTests/         Automated tests (swift test)
 ├── Resources/
 │   ├── AppIcon.icns            App icon (generated by scripts/make-icon.swift)
 │   ├── de.lproj/               German (development language)
@@ -495,11 +503,12 @@ TidyRAM/
 │   ├── make-icon.swift         Draws the app icon in code
 │   ├── make-pdf.sh             README → docs/TidyRAM.pdf and docs/TidyRAM-en.pdf
 │   └── update-homebrew.sh      Updates the Homebrew cask after a release
-├── docs/                       Icon, screenshots, PDF docs (German + English)
+├── docs/                       Website (GitHub Pages), icon, screenshots, PDFs
 ├── .github/
 │   ├── workflows/              build.yml (every push), release.yml (every version tag)
 │   ├── ISSUE_TEMPLATE/         Templates for bug reports and ideas
 │   └── pull_request_template.md
+├── Package.swift               Swift package: swift test, swift build, open in Xcode
 ├── build.sh                    Compiles and creates build/TidyRAM.app
 ├── CHANGELOG.md                Changes per version (German)
 ├── CONTRIBUTING.md             How to contribute (German + English)
@@ -522,7 +531,10 @@ The code comments are in German. They're detailed, and any translation tool hand
 | Memory pressure | `sysctl kern.memorystatus_vm_pressure_level` (1/2/4) |
 | Swap | `sysctl vm.swapusage` |
 | Per-app usage | `proc_pid_rusage(RUSAGE_INFO_V4).ri_phys_footprint` for **all** processes (`proc_listallpids`), summed per responsible app via `responsibility_get_pid_responsible_for_pid`. That function isn't officially documented, so it's looked up at runtime via `dlsym`. If it's missing, each process counts on its own. Takes about 5 ms |
-| History | One data point every 10 s with usage, pressure and top app, at most 1 hour (360 points) kept in memory, drawn with Swift Charts. Hover details via `chartOverlay` + `onContinuousHover`. Nothing is written to disk |
+| History | One data point every 10 s with usage, pressure and top app, at most 24 hours (8,640 points). Downsampled to ~360 points for display (average, worst pressure, largest app). Stored as JSON at most once a minute and on quit, written atomically. Hover details via `chartOverlay` + `onContinuousHover` |
+| Mini chart | Template image (`NSImage.isTemplate`) that adapts to light and dark menu bars. Zooms to the value range, minimum span 20% |
+| Own usage | Memory via `proc_pid_rusage`, CPU via `getrusage(RUSAGE_SELF)`, moving average without the startup spike |
+| Tests | Swift Testing, `swift test`. Checks kernel values, process grouping, notification and swap rules, history downsampling and storage, mini chart, link commands. Runs on every push in GitHub Actions |
 | Details | Compressor and swap from `host_statistics64` (`total_uncompressed_pages_in_compressor`, `swapins`, `swapouts`), swap size from `vm.swapusage`, graphics memory from the IORegistry (`IOAccelerator` → `PerformanceStatistics` → "In use system memory"). No admin rights needed |
 | Control via link | `CFBundleURLTypes` with scheme `tidyram`, Apple Event `kAEGetURL` in the `AppDelegate` |
 | Logging | `os.Logger`, subsystem `local.tidyram` |
@@ -537,7 +549,8 @@ The code comments are in German. They're detailed, and any translation tool hand
 | Build | Plain `swiftc`, no Xcode project, ad-hoc signed. `--universal` uses `lipo` to build for arm64 and x86_64 |
 | App icon | Drawn with CoreGraphics (`scripts/make-icon.swift`), bundled into `.icns` with `iconutil` |
 | CI / releases | GitHub Actions: `build.yml` builds on every push. `release.yml` builds on a `vX.Y.Z` tag and publishes `TidyRAM-X.Y.Z.zip` with the matching section from `CHANGELOG.md` |
-| Homebrew | Own tap repository [seyi23/homebrew-tidyram](https://github.com/seyi23/homebrew-tidyram), updated with `scripts/update-homebrew.sh` |
+| Homebrew | Own tap repository [seyi23/homebrew-tidyram](https://github.com/seyi23/homebrew-tidyram). Updated automatically on release (with the `HOMEBREW_TAP_TOKEN` secret), otherwise with `scripts/update-homebrew.sh` |
+| Website | Static HTML/CSS in `docs/` (English and German), published via GitHub Pages |
 
 ---
 
@@ -547,7 +560,7 @@ The code comments are in German. They're detailed, and any translation tool hand
 ./scripts/uninstall.sh
 ```
 
-The script quits the app, deletes `/Applications/TidyRAM.app` and removes the sudo rule (if present). Turn off *Launch at login* in the app first, or remove the entry under *System Settings → General → Login Items*.
+The script quits the app, deletes `/Applications/TidyRAM.app`, the saved history and the settings, and removes the sudo rule (if present). Turn off *Launch at login* in the app first, or remove the entry under *System Settings → General → Login Items*.
 
 Installed via Homebrew:
 
@@ -561,7 +574,8 @@ brew uninstall --cask --zap tidyram
 
 - **The effect is temporary:** macOS refills the file cache after freeing, and that's intended.
 - **Not notarized:** hence the warning on first launch and in the password dialog, see [above](#password-prompt-problem-and-workaround).
-- **History is in memory only:** after restarting TidyRAM the chart starts over.
+- **History on a hard kill:** if TidyRAM is killed (e.g. with `kill`), at most the last minute is lost. Quitting normally, logging out and shutting down save everything.
+- **Mini chart at the start:** it needs a few minutes of data. Until then the percentage is shown.
 - **Graphics memory not everywhere:** some Macs (mostly Intel with a discrete GPU) don't report the GPU value. Only that detail line is missing then.
 - **Shortcut already taken?** If another app already uses ⌃⌥⌘R, TidyRAM can't register it. Turn it off in Settings then.
 - **After a new build** you need to copy the app to `/Applications` again (`./scripts/install.sh` does that).
@@ -603,7 +617,7 @@ Found a bug or have an idea? [Open an issue](https://github.com/seyi23/TidyRAM/i
 
 Bug reports, ideas, translations and pull requests are welcome. Everything you need is in [CONTRIBUTING.md](CONTRIBUTING.md), including:
 
-- how to build and test,
+- how to build and run the automated tests (`swift test`),
 - how to add **another language** (copy one file and translate it),
 - how a new version gets released.
 
