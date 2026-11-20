@@ -40,8 +40,8 @@ enum CleanError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .cancelled: "Abgebrochen."
-        case .failed(let msg): "Fehler: \(msg)"
+        case .cancelled: String(localized: "Abgebrochen.")
+        case .failed(let msg): String(localized: "Fehler: \(msg)")
         }
     }
 }
@@ -66,14 +66,15 @@ enum Cleaner {
             // Hinweis: Ab macOS 26/27 ersetzt das System den Text aus
             // "with prompt" durch eine eigene Warnung ("Apple konnte nicht
             // bestätigen …"), weil die App nicht von Apple notarisiert ist.
+            let prompt = String(localized: "TidyRAM möchte ungenutzten Datei-Cache freigeben.")
             let result = run("/usr/bin/osascript", [
                 "-e",
-                "do shell script \"\(purgePath)\" with prompt \"TidyRAM möchte ungenutzten Datei-Cache freigeben.\" with administrator privileges",
+                "do shell script \"\(purgePath)\" with prompt \"\(prompt)\" with administrator privileges",
             ])
             guard result.status == 0 else {
                 // AppleScript-Fehler -128 = "User canceled".
                 if result.stderr.contains("-128") { throw CleanError.cancelled }
-                throw CleanError.failed(result.stderr.isEmpty ? "purge fehlgeschlagen" : result.stderr)
+                throw CleanError.failed(result.stderr.isEmpty ? String(localized: "purge fehlgeschlagen") : result.stderr)
             }
         }.value
     }

@@ -4,8 +4,10 @@
 //
 //  Das Datenmodell der App. Es
 //    • liest alle 2 Sekunden die Speicherwerte neu ein,
+//    • merkt sich den Verlauf der letzten Stunde (für die Grafik),
 //    • ermittelt die Apps mit dem größten Speicherverbrauch,
-//    • löst das Freigeben des Datei-Caches aus,
+//    • löst das Freigeben des Datei-Caches aus (Knopf, Tastenkürzel, automatisch),
+//    • verschickt Mitteilungen bei Speicherknappheit,
 //    • beendet auf Wunsch einzelne Apps (regulär, wie ⌘Q),
 //    • verwaltet "Bei Anmeldung starten".
 //
@@ -30,16 +32,34 @@ struct AppUsage: Identifiable {
     let app: NSRunningApplication // Referenz zum regulären Beenden
 }
 
+/// Ein Messpunkt für die Verlaufsgrafik.
+struct HistoryPoint: Identifiable {
+    let date: Date
+    let usedFraction: Double      // 0…1
+    let pressure: MemoryPressure
+    var id: Date { date }
+}
+
+/// Wodurch eine Freigabe ausgelöst wurde – steuert, ob eine Mitteilung kommt.
+enum CleanTrigger {
+    case button   // Klick im Fenster: Ergebnis steht im Fenster
+    case hotKey   // ⌃⌥⌘R: Fenster ist zu, daher Ergebnis als Mitteilung
+    case auto     // automatisch bei Speicherdruck
+}
+
 @MainActor
 @Observable
 final class MemoryMonitor {
     // Nur lesbar von außen – geändert wird ausschließlich hier im Modell.
     private(set) var stats = MemoryStats()
     private(set) var apps: [AppUsage] = []
+    private(set) var history: [HistoryPoint] = []
     private(set) var isCleaning = false
     private(set) var lastResult: String?
     /// true, wenn die sudoers-Regel aktiv ist und purge ohne Passwort läuft.
     private(set) var passwordless = false
+
+    let settings: AppSettings
 
     /// Apps, die nie zum Beenden angeboten werden. Sie gehören zum System und
     /// würden sofort neu starten bzw. die Bedienoberfläche stören.
@@ -48,10 +68,23 @@ final class MemoryMonitor {
         "com.apple.systemuiserver", "com.apple.controlcenter",
     ]
 
-    /// Hintergrund-Schleife für die regelmäßige Aktualisierung.
-    private var refreshTask: Task<Void, Never>?
+    // Verlauf: alle 10 s ein Punkt, maximal 1 Stunde → höchstens 360 Punkte.
+    private let historyInterval: TimeInterval = 10
+    private let historyWindow: TimeInterval = 3600
 
-    init() {
+    // Mindestabstand zwischen zwei Mitteilungen wegen Speicherdruck.
+    private let alertCooldown: TimeInterval = 10 * 60
+
+    private var refreshTask: Task<Void, Never>?
+    private var previousPressure: MemoryPressure = .unknown
+    private var lastAlert = Date.distantPast
+    private var lastAutoClean = Date.distantPast
+    private let hotKey = GlobalHotKey()
+
+    init(settings: AppSettings) {
+        self.settings = settings
+        Notifier.shared.setUp()
+        updateHotKey()
         refresh()
         // Endlosschleife: alle 2 s neue Werte, alle 60 s (30 Durchläufe) wird
         // zusätzlich geprüft, ob die Passwort-Regel (noch) aktiv ist.
@@ -67,10 +100,17 @@ final class MemoryMonitor {
         }
     }
 
-    /// Liest Speicherwerte und App-Liste neu ein.
+    // MARK: - Aktualisieren
+
+    /// Liest Speicherwerte und App-Liste neu ein und reagiert auf Speicherdruck.
     func refresh() {
         if let s = MemoryStats.current() { stats = s }
+        updateApps()
+        recordHistory()
+        handlePressure()
+    }
 
+    private func updateApps() {
         let me = ProcessInfo.processInfo.processIdentifier
         // Speicher aller Prozesse, summiert pro verantwortlicher App
         // (Safari + alle Tab-Prozesse, Chrome + alle Helper usw.).
@@ -100,8 +140,50 @@ final class MemoryMonitor {
             .map { $0 }
     }
 
+    /// Hängt alle 10 s einen Messpunkt an und wirft Punkte älter als 1 h weg.
+    private func recordHistory() {
+        let now = Date()
+        guard now.timeIntervalSince(history.last?.date ?? .distantPast) >= historyInterval else { return }
+        history.append(HistoryPoint(date: now, usedFraction: stats.usedFraction, pressure: stats.pressure))
+        history.removeAll { now.timeIntervalSince($0.date) > historyWindow }
+    }
+
+    /// Mitteilung und (optional) automatisches Freigeben bei Speicherdruck.
+    private func handlePressure() {
+        let pressure = stats.pressure
+        defer { previousPressure = pressure }
+        let now = Date()
+
+        // 1. Mitteilung – nur beim ÜBERGANG in den kritischen Bereich und
+        //    höchstens alle 10 Minuten, damit es nicht nervt.
+        let level = settings.notifyLevel
+        if level.triggers(pressure), !level.triggers(previousPressure),
+           now.timeIntervalSince(lastAlert) > alertCooldown {
+            lastAlert = now
+            let title = pressure == .critical
+                ? String(localized: "Arbeitsspeicher kritisch knapp")
+                : String(localized: "Arbeitsspeicher wird knapp")
+            var body = String(localized: "\(formatBytes(stats.used)) von \(formatBytes(stats.total)) belegt.")
+            if let top = apps.first {
+                body += " " + String(localized: "\(top.name) belegt \(formatBytes(top.footprint)). Große Apps zu schließen hilft am meisten.")
+            }
+            Task { await Notifier.shared.post(title: title, body: body) }
+        }
+
+        // 2. Automatisch freigeben – nur wenn eingeschaltet, ohne Passwort
+        //    möglich und der letzte automatische Lauf lange genug her ist.
+        if settings.autoClean, passwordless, !isCleaning,
+           pressure == .warning || pressure == .critical,
+           now.timeIntervalSince(lastAutoClean) > Double(settings.autoCleanMinutes) * 60 {
+            lastAutoClean = now
+            Task { await clean(trigger: .auto) }
+        }
+    }
+
+    // MARK: - Freigeben
+
     /// Gibt den Datei-Cache frei und zeigt an, wie viel RAM dadurch frei wurde.
-    func clean() async {
+    func clean(trigger: CleanTrigger = .button) async {
         guard !isCleaning else { return }   // Doppelklicks ignorieren
         isCleaning = true
         lastResult = nil
@@ -113,13 +195,36 @@ final class MemoryMonitor {
             refresh()
             let after = stats.free
             let freed = after > before ? after - before : 0
-            lastResult = "\(formatBytes(freed)) freigegeben"
+            lastResult = trigger == .auto
+                ? String(localized: "Automatisch: \(formatBytes(freed)) freigegeben")
+                : String(localized: "\(formatBytes(freed)) freigegeben")
         } catch {
             lastResult = error.localizedDescription
         }
         passwordless = await Cleaner.isPasswordless()
         isCleaning = false
+
+        // Bei Tastenkürzel ist das Fenster zu → Ergebnis als Mitteilung.
+        // Bei automatischer Freigabe nur, wenn Mitteilungen eingeschaltet sind.
+        if trigger == .hotKey || (trigger == .auto && settings.notifyLevel != .off),
+           let lastResult {
+            await Notifier.shared.post(title: "TidyRAM", body: lastResult)
+        }
     }
+
+    /// Tastenkürzel je nach Einstellung an- oder abmelden.
+    func updateHotKey() {
+        if settings.hotKeyEnabled {
+            hotKey.register { [weak self] in
+                guard let self else { return }
+                Task { await self.clean(trigger: .hotKey) }
+            }
+        } else {
+            hotKey.unregister()
+        }
+    }
+
+    // MARK: - Apps beenden
 
     /// Beendet eine App regulär – genau wie ⌘Q. Die App bekommt die normale
     /// Beenden-Anfrage und kann bei ungesicherten Dokumenten nachfragen.
@@ -144,7 +249,7 @@ final class MemoryMonitor {
                 if newValue { try SMAppService.mainApp.register() }
                 else { try SMAppService.mainApp.unregister() }
             } catch {
-                lastResult = "Autostart: \(error.localizedDescription)"
+                lastResult = String(localized: "Autostart: \(error.localizedDescription)")
             }
         }
     }

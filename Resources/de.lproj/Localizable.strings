@@ -1,0 +1,9 @@
+/*
+  Localizable.strings (Deutsch)
+  TidyRAM
+
+  Deutsch ist die Entwicklungssprache: Die Texte im Code SIND die deutschen
+  Texte. Diese Datei bleibt deshalb leer. Sie muss aber existieren, damit
+  macOS weiß, dass die App Deutsch kann – sonst würde ein deutsches System
+  die englische Übersetzung anzeigen.
+*/

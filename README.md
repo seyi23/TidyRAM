@@ -4,6 +4,8 @@
 
 # TidyRAM
 
+**Deutsch** | [English](README.en.md)
+
 [![Build](https://github.com/seyi23/TidyRAM/actions/workflows/build.yml/badge.svg)](https://github.com/seyi23/TidyRAM/actions/workflows/build.yml)
 [![Release](https://img.shields.io/github/v/release/seyi23/TidyRAM)](https://github.com/seyi23/TidyRAM/releases/latest)
 [![Lizenz: MIT](https://img.shields.io/badge/Lizenz-MIT-green.svg)](LICENSE)
@@ -20,9 +22,10 @@ Eine schlanke Menüleisten-App für macOS, die den Arbeitsspeicher übersichtlic
 > 🤖 **Vibe Coding mit Claude.** TidyRAM ist komplett per *Vibe Coding* entstanden: Ich habe beschrieben, was die App können soll, und [Claude](https://claude.com/claude-code) von Anthropic hat den Code, die Skripte und diese Dokumentation geschrieben. Mehr dazu unter [Entstehung](#entstehung-vibe-coding-mit-claude).
 
 - **Plattform:** macOS 14 (Sonoma) oder neuer, Apple Silicon und Intel (getestet auf macOS 27.2, Apple Silicon)
-- **Sprache:** Swift 6 / SwiftUI, keine externen Abhängigkeiten
-- **Version:** 1.2.0 ([Änderungen](CHANGELOG.md))
-- **Download:** [neueste Version](https://github.com/seyi23/TidyRAM/releases/latest)
+- **Sprachen der App:** Deutsch und Englisch (folgt der Systemsprache)
+- **Technik:** Swift 6 / SwiftUI, keine externen Abhängigkeiten
+- **Version:** 1.3.0 ([Änderungen](CHANGELOG.md))
+- **Download:** [neueste Version](https://github.com/seyi23/TidyRAM/releases/latest) oder per [Homebrew](#variante-2-homebrew)
 - **Lizenz:** MIT (kostenlos, Open Source)
 
 ---
@@ -33,18 +36,19 @@ Eine schlanke Menüleisten-App für macOS, die den Arbeitsspeicher übersichtlic
 2. [Was die App macht und was nicht](#was-die-app-macht-und-was-nicht)
 3. [Installation](#installation)
 4. [Bedienung](#bedienung)
-5. [Die Speicherbereiche erklärt](#die-speicherbereiche-erklärt)
-6. [Wie das Freigeben funktioniert](#wie-das-freigeben-funktioniert)
-7. [Passwortabfrage: Problem und Workaround](#passwortabfrage-problem-und-workaround)
-8. [Speicher im Terminal ansehen](#speicher-im-terminal-ansehen)
-9. [Projektstruktur](#projektstruktur)
-10. [Technische Details](#technische-details)
-11. [Deinstallation](#deinstallation)
-12. [Bekannte Einschränkungen](#bekannte-einschränkungen)
-13. [Dokumentation als PDF erzeugen](#dokumentation-als-pdf-erzeugen)
-14. [Entstehung: Vibe Coding mit Claude](#entstehung-vibe-coding-mit-claude)
-15. [Mitmachen](#mitmachen)
-16. [Lizenz](#lizenz)
+5. [Einstellungen](#einstellungen)
+6. [Die Speicherbereiche erklärt](#die-speicherbereiche-erklärt)
+7. [Wie das Freigeben funktioniert](#wie-das-freigeben-funktioniert)
+8. [Passwortabfrage: Problem und Workaround](#passwortabfrage-problem-und-workaround)
+9. [Speicher im Terminal ansehen](#speicher-im-terminal-ansehen)
+10. [Projektstruktur](#projektstruktur)
+11. [Technische Details](#technische-details)
+12. [Deinstallation](#deinstallation)
+13. [Bekannte Einschränkungen](#bekannte-einschränkungen)
+14. [Dokumentation als PDF erzeugen](#dokumentation-als-pdf-erzeugen)
+15. [Entstehung: Vibe Coding mit Claude](#entstehung-vibe-coding-mit-claude)
+16. [Mitmachen](#mitmachen)
+17. [Lizenz](#lizenz)
 
 ---
 
@@ -52,12 +56,17 @@ Eine schlanke Menüleisten-App für macOS, die den Arbeitsspeicher übersichtlic
 
 | Funktion | Beschreibung |
 |---|---|
-| **Live-Anzeige in der Menüleiste** | Chip-Symbol mit dem belegten Speicher in Prozent, alle 2 Sekunden aktualisiert. |
+| **Live-Anzeige in der Menüleiste** | Chip-Symbol mit belegtem Speicher in Prozent oder GB, einem Farbpunkt für den Speicherdruck oder nur dem Symbol. Alle 2 Sekunden aktualisiert. |
 | **Speicherübersicht** | Farbiger Balken und Legende: Apps, Reserviert, Komprimiert, Datei-Cache, Frei und Swap. Gleiche Werte wie in der Aktivitätsanzeige. |
 | **Speicherdruck** | Badge *Normal*, *Erhöht* oder *Kritisch*, direkt vom macOS-Kernel. |
+| **Verlaufsgrafik** | Belegter Speicher der letzten Stunde. Zeiten mit erhöhtem oder kritischem Druck sind gelb bzw. rot hinterlegt. |
 | **Ungenutzten RAM freigeben** | Leert den Datei-Cache mit Apples `purge` und zeigt an, wie viel frei wurde. |
+| **Tastenkürzel ⌃⌥⌘R** | Gibt RAM von überall frei, ohne das Fenster zu öffnen. Das Ergebnis kommt als Mitteilung. |
+| **Mitteilungen** | Hinweis, wenn der Speicher knapp wird, mit der App, die gerade am meisten belegt. Höchstens alle 10 Minuten. |
+| **Automatisch freigeben (optional)** | Bei erhöhtem Speicherdruck den Cache selbst leeren, höchstens alle 15, 30 oder 60 Minuten. Standardmäßig aus. |
 | **Ohne Passwort (optional)** | Mit einer eng begrenzten sudo-Regel läuft das Freigeben ohne Passwortdialog. Die App zeigt an, ob das aktiv ist. |
 | **Größte Apps** | Die 8 Programme mit dem größten Speicherverbrauch, **inklusive aller Tabs und Hilfsprozesse** (Safari, Chrome, Firefox, Electron-Apps). Mit ✕ beendest du sie regulär (wie ⌘Q). |
+| **Einstellungsfenster** | Alle Optionen an einem Ort, siehe [Einstellungen](#einstellungen). |
 | **Bei Anmeldung starten** | Autostart über die offizielle macOS-API (`SMAppService`). |
 
 ---
@@ -74,6 +83,7 @@ TidyRAM ist bewusst **vorsichtig** gebaut:
 | beendet Apps nur auf Klick und regulär (die App kann nach dem Sichern fragen) | erzwingt kein Beenden (kein `kill -9`, kein `forceTerminate`) |
 | zeigt den echten Speicherdruck an | manipuliert keinen Speicher fremder Prozesse |
 | führt mit Admin-Rechten nur einen einzigen, fest eingetragenen Befehl aus | installiert keine Hintergrunddienste oder Kernel-Erweiterungen |
+| speichert Einstellungen nur lokal | greift nicht aufs Netzwerk zu und sammelt keine Daten |
 
 **Wann hilft das Freigeben wirklich?** Vor allem kurz vor einer speicherhungrigen Aufgabe (Video-Export, VM, große Builds), oder um zu sehen, wie viel RAM wirklich gebraucht wird.
 
@@ -96,7 +106,15 @@ TidyRAM ist bewusst **vorsichtig** gebaut:
 
 Die App läuft auf Apple Silicon und Intel (Universal Binary).
 
-### Variante 2: Selbst bauen
+### Variante 2: Homebrew
+
+```bash
+brew install --cask seyi23/tidyram/tidyram
+```
+
+Homebrew lädt dieselbe ZIP-Datei aus den Releases und legt die App in **Programme** ab. Auch hier ist beim ersten Start einmal die Freigabe wie in Variante 1 nötig. Updates gibt es mit `brew upgrade --cask tidyram`.
+
+### Variante 3: Selbst bauen
 
 **Voraussetzungen:**
 
@@ -126,28 +144,52 @@ Das Skript baut die App, kopiert sie nach `/Applications` und startet sie. Danac
 ./build.sh
 ```
 
-Das Ergebnis liegt in `build/TidyRAM.app`. Du kannst es per Doppelklick starten oder von Hand in den Ordner „Programme“ ziehen. Mit `./build.sh --universal` entsteht eine Version für Apple Silicon **und** Intel.
+Das Ergebnis liegt in `build/TidyRAM.app`. Mit `./build.sh --universal` entsteht eine Version für Apple Silicon **und** Intel.
 
 ### Hinweis zum ersten Start
 
 Die App ist nur lokal signiert (ad hoc) und nicht von Apple notarisiert. Eine Notarisierung setzt ein kostenpflichtiges Apple-Entwicklerkonto voraus.
 
 - **Selbst gebaut:** startet ohne Rückfrage.
-- **Heruntergeladen:** Gatekeeper blockiert den ersten Start. Freigabe wie oben unter Variante 1 beschrieben. Das ist nur einmal nötig.
+- **Heruntergeladen oder per Homebrew:** Gatekeeper blockiert den ersten Start. Freigabe wie oben unter Variante 1 beschrieben. Das ist nur einmal nötig.
 
 ---
 
 ## Bedienung
 
-Klicke auf das **Chip-Symbol mit der Prozentzahl** in der Menüleiste. Es öffnet sich ein Fenster mit:
+Klicke auf das **Chip-Symbol** in der Menüleiste. Es öffnet sich ein Fenster mit:
 
-1. **Kopf:** belegter Speicher („13,06 GB von 16 GB belegt“) und rechts das Badge mit dem Speicherdruck.
+1. **Kopf:** belegter Speicher („11,1 GB von 16 GB belegt“), das Badge mit dem Speicherdruck und das **Zahnrad** für die [Einstellungen](#einstellungen).
 2. **Balken und Legende:** die Aufteilung des RAM, siehe [Speicherbereiche](#die-speicherbereiche-erklärt).
-3. **„Ungenutzten RAM freigeben“:** leert den Datei-Cache. Darunter stehen
+3. **Verlauf (letzte Stunde):** belegter Speicher in Prozent. Gelb bzw. rot hinterlegt sind Zeiten mit erhöhtem oder kritischem Speicherdruck. Die Grafik füllt sich, solange TidyRAM läuft (alle 10 Sekunden ein Messpunkt).
+4. **„Ungenutzten RAM freigeben“:** leert den Datei-Cache. Darunter stehen
     - das Ergebnis, z. B. *„1,9 GB freigegeben“*,
     - der Passwort-Status: 🔒 *Fragt nach Passwort* oder ✔︎ *Ohne Passwort eingerichtet*.
-4. **Größte Apps:** Speicher pro App inklusive aller Tabs und Hilfsprozesse. Die kleine Zahl mit dem Stapel-Symbol zeigt, wie viele Prozesse dazugehören. Klick auf ✕ beendet die App regulär. Ungesicherte Dokumente lösen den normalen „Sichern?“-Dialog der App aus. Finder, Dock und andere Systemprozesse werden nie angeboten.
-5. **Fußzeile:** *Bei Anmeldung starten* und *Beenden*.
+5. **Größte Apps:** Speicher pro App inklusive aller Tabs und Hilfsprozesse. Die kleine Zahl mit dem Stapel-Symbol zeigt, wie viele Prozesse dazugehören. Klick auf ✕ beendet die App regulär. Ungesicherte Dokumente lösen den normalen „Sichern?“-Dialog der App aus. Finder, Dock und andere Systemprozesse werden nie angeboten.
+6. **Fußzeile:** *Bei Anmeldung starten* und *Beenden*.
+
+**Tastenkürzel:** Mit **⌃⌥⌘R** (Control + Option + Command + R) gibst du RAM von überall frei. Das Ergebnis erscheint als Mitteilung. Das Kürzel lässt sich in den Einstellungen abschalten.
+
+---
+
+## Einstellungen
+
+Erreichbar über das **Zahnrad** im TidyRAM-Fenster. Alle Änderungen gelten sofort.
+
+<p align="center">
+  <img src="docs/settings.png" alt="Einstellungsfenster" width="400">
+</p>
+
+| Bereich | Optionen |
+|---|---|
+| **Menüleiste** | Was neben dem Symbol steht: Prozent, GB, Farbpunkt für den Speicherdruck (grün, gelb, rot) oder nur das Symbol |
+| **Mitteilungen** | *Nie*, *Bei kritischem Speicherdruck* (Standard) oder *Schon bei erhöhtem Speicherdruck*. Beim ersten Mal fragt macOS, ob TidyRAM Mitteilungen senden darf |
+| **Automatisch freigeben** | Aus (Standard) oder an, mit Mindestabstand 15, 30 oder 60 Minuten. **Nur verfügbar, wenn [Freigeben ohne Passwort](#passwortabfrage-problem-und-workaround) eingerichtet ist.** Sonst würde unvermittelt ein Passwortdialog erscheinen |
+| **Tastenkürzel** | ⌃⌥⌘R an (Standard) oder aus |
+| **Allgemein** | Bei Anmeldung starten |
+| **Über TidyRAM** | Version, Lizenz, Link zum Repository |
+
+Gespeichert werden die Einstellungen lokal in `~/Library/Preferences/local.tidyram.plist`.
 
 ---
 
@@ -208,7 +250,7 @@ Ohne weitere Einrichtung zeigt macOS bei **jedem** Klick auf „Ungenutzten RAM 
 - *„Apple konnte nicht bestätigen …“* erscheint, weil die App nur ad hoc signiert und **nicht von Apple notarisiert** ist. Das betrifft jede selbst gebaute App. Es bedeutet **nicht**, dass Schadsoftware gefunden wurde.
 - Ab macOS 26/27 ersetzt das System den eigenen Dialogtext der App durch diese Warnung.
 
-„Zugriff erlauben“ ist hier unbedenklich, weil nur `/usr/sbin/purge` ausgeführt wird. Auf Dauer nervt es aber.
+„Zugriff erlauben“ ist hier unbedenklich, weil nur `/usr/sbin/purge` ausgeführt wird. Auf Dauer nervt es aber. Außerdem setzen **automatisches Freigeben** und ein reibungsloses **Tastenkürzel** voraus, dass kein Dialog erscheint.
 
 ### Die Lösung: eine sudo-Regel nur für purge
 
@@ -268,7 +310,7 @@ oder direkt:
 sudo rm /etc/sudoers.d/tidyram
 ```
 
-Die App funktioniert danach weiter und zeigt beim Freigeben wieder den Passwortdialog.
+Die App funktioniert danach weiter und zeigt beim Freigeben wieder den Passwortdialog. Automatisches Freigeben pausiert dann.
 
 #### Sicherheitsabwägung
 
@@ -292,7 +334,7 @@ Die App funktioniert danach weiter und zeigt beim Freigeben wieder den Passwortd
 
 | Lösung | Vorteil | Nachteil |
 |---|---|---|
-| **Passwort jedes Mal eingeben** | Keine Systemänderung | Nervt, Warndialog bei jedem Klick |
+| **Passwort jedes Mal eingeben** | Keine Systemänderung | Nervt, Warndialog bei jedem Klick, kein automatisches Freigeben |
 | **sudo-Regel (oben)** | Kein Dialog mehr, eng begrenzt, jederzeit rückgängig | Einmalige Einrichtung im Terminal |
 | **Signierter Hilfsdienst** (`SMAppService.daemon`) | Kein Dialog, keine Warnung, „offizieller“ Weg | Erfordert ein Apple-Developer-Konto (99 €/Jahr), Developer-ID-Signatur und Notarisierung |
 
@@ -343,30 +385,36 @@ free() { vm_stat | awk -v total=$(sysctl -n hw.memsize) '/page size of/{ps=$8} /
 ```
 TidyRAM/
 ├── Sources/
-│   ├── TidyRAMApp.swift        Einstiegspunkt, Menüleisten-Symbol
-│   ├── ContentView.swift       Oberfläche (Balken, Legende, Button, App-Liste)
-│   ├── MemoryMonitor.swift     Datenmodell: aktualisiert Werte, löst Aktionen aus
+│   ├── TidyRAMApp.swift        Einstiegspunkt, Menüleisten-Anzeige, Einstellungs-Szene
+│   ├── ContentView.swift       Fenster: Balken, Legende, Verlauf, Button, App-Liste
+│   ├── SettingsView.swift      Einstellungsfenster
+│   ├── AppSettings.swift       Einstellungen (gespeichert in UserDefaults)
+│   ├── MemoryMonitor.swift     Datenmodell: Werte, Verlauf, Mitteilungen, Auto-Freigabe
 │   ├── MemoryStats.swift       Liest RAM und App-Verbrauch beim Kernel aus (nur lesend)
-│   └── Cleaner.swift           Führt purge aus (sudo -n oder Passwortdialog)
+│   ├── Cleaner.swift           Führt purge aus (sudo -n oder Passwortdialog)
+│   ├── Notifier.swift          macOS-Mitteilungen
+│   └── GlobalHotKey.swift      Tastenkürzel ⌃⌥⌘R
 ├── Resources/
-│   └── AppIcon.icns            App-Symbol (erzeugt von scripts/make-icon.swift)
+│   ├── AppIcon.icns            App-Symbol (erzeugt von scripts/make-icon.swift)
+│   ├── de.lproj/               Deutsch (Entwicklungssprache)
+│   └── en.lproj/               Englische Übersetzung
 ├── scripts/
 │   ├── install.sh              Bauen + nach /Applications installieren + starten
 │   ├── enable-passwordless.sh  sudo-Regel für purge einrichten
 │   ├── disable-passwordless.sh sudo-Regel entfernen
 │   ├── uninstall.sh            App und sudo-Regel entfernen
 │   ├── make-icon.swift         Zeichnet das App-Symbol per Code
-│   └── make-pdf.sh             README.md → docs/TidyRAM.pdf
-├── docs/
-│   ├── icon.png                Symbol als Bild (für README)
-│   ├── screenshot.png
-│   └── TidyRAM.pdf             diese Dokumentation als PDF
-├── .github/workflows/
-│   ├── build.yml               Baut bei jedem Push (GitHub Actions)
-│   └── release.yml             Erstellt bei jedem Versions-Tag ein Release
+│   ├── make-pdf.sh             README → docs/TidyRAM.pdf und docs/TidyRAM-en.pdf
+│   └── update-homebrew.sh      Aktualisiert die Homebrew-Formel nach einem Release
+├── docs/                       Symbol, Screenshots, PDF-Dokumentation (DE + EN)
+├── .github/
+│   ├── workflows/              build.yml (jeder Push), release.yml (jedes Versions-Tag)
+│   ├── ISSUE_TEMPLATE/         Vorlagen für Fehlermeldungen und Ideen
+│   └── pull_request_template.md
 ├── build.sh                    Kompiliert und erzeugt build/TidyRAM.app
 ├── CHANGELOG.md                Änderungen pro Version
-├── README.md
+├── CONTRIBUTING.md             Anleitung zum Mitmachen
+├── README.md / README.en.md    Diese Dokumentation (Deutsch / Englisch)
 ├── LICENSE
 └── .gitignore
 ```
@@ -377,19 +425,25 @@ TidyRAM/
 
 | Thema | Umsetzung |
 |---|---|
-| Oberfläche | SwiftUI `MenuBarExtra` mit `.window`-Stil, `LSUIElement` (kein Dock-Symbol) |
+| Oberfläche | SwiftUI `MenuBarExtra` mit `.window`-Stil und `Settings`-Szene, `LSUIElement` (kein Dock-Symbol) |
 | Datenfluss | `@Observable` + `@MainActor`-Modell, Aktualisierung alle 2 s per `Task`-Schleife |
 | Speicherwerte | Mach-API `host_statistics64(HOST_VM_INFO64)` |
 | Speicherdruck | `sysctl kern.memorystatus_vm_pressure_level` (1/2/4) |
 | Swap | `sysctl vm.swapusage` |
 | App-Verbrauch | `proc_pid_rusage(RUSAGE_INFO_V4).ri_phys_footprint` für **alle** Prozesse (`proc_listallpids`), summiert pro verantwortlicher App über `responsibility_get_pid_responsible_for_pid`. Die Funktion ist nicht offiziell dokumentiert und wird deshalb zur Laufzeit per `dlsym` gesucht. Fehlt sie, zählt jeder Prozess für sich. Dauer: ca. 5 ms |
+| Verlauf | Ein Messpunkt alle 10 s, höchstens 1 Stunde (360 Punkte) im Speicher, dargestellt mit Swift Charts. Nichts wird auf die Festplatte geschrieben |
+| Mitteilungen | `UserNotifications`. Nur beim Übergang in den kritischen Bereich, höchstens alle 10 Minuten |
+| Tastenkürzel | Carbon `RegisterEventHotKey`. Braucht **keine** Bedienungshilfen-Berechtigung, weil nur genau dieses Kürzel abgefangen und keine Tastatureingabe mitgelesen wird |
 | Apps beenden | `NSRunningApplication.terminate()`, regulär, nie erzwungen |
 | Freigeben | `/usr/sbin/purge` über `sudo -n`, Fallback `osascript … with administrator privileges` |
+| Einstellungen | `UserDefaults` (`~/Library/Preferences/local.tidyram.plist`) |
+| Übersetzung | `Localizable.strings` in `de.lproj` und `en.lproj`. Deutsch ist die Entwicklungssprache, die deutschen Texte im Code sind zugleich die Schlüssel |
 | Autostart | `SMAppService.mainApp` |
 | Nebenläufigkeit | Swift-6-Sprachmodus (strikte Datenrennen-Prüfung). Externe Prozesse laufen in `Task.detached`, damit die Oberfläche nie blockiert |
 | Build | Direkt mit `swiftc`, ohne Xcode-Projekt, ad-hoc signiert. `--universal` erzeugt per `lipo` eine Version für arm64 und x86_64 |
 | App-Symbol | Per CoreGraphics gezeichnet (`scripts/make-icon.swift`), mit `iconutil` zu `.icns` gebündelt |
 | CI / Releases | GitHub Actions: `build.yml` baut bei jedem Push. `release.yml` baut bei einem Tag `vX.Y.Z` und veröffentlicht `TidyRAM-X.Y.Z.zip` mit dem passenden Abschnitt aus `CHANGELOG.md` |
+| Homebrew | Eigenes Tap-Repository [seyi23/homebrew-tidyram](https://github.com/seyi23/homebrew-tidyram), aktualisiert mit `scripts/update-homebrew.sh` |
 
 ---
 
@@ -401,12 +455,20 @@ TidyRAM/
 
 Das Skript beendet die App, löscht `/Applications/TidyRAM.app` und entfernt die sudo-Regel (falls vorhanden). Schalte vorher in der App *Bei Anmeldung starten* aus, oder entferne den Eintrag unter *Systemeinstellungen → Allgemein → Anmeldeobjekte*.
 
+Per Homebrew installiert:
+
+```bash
+brew uninstall --cask --zap tidyram
+```
+
 ---
 
 ## Bekannte Einschränkungen
 
 - **Wirkung ist vorübergehend:** macOS füllt den Datei-Cache nach dem Freigeben wieder, und das ist so gewollt.
-- **Nicht notarisiert:** Deshalb die Warnung im Passwortdialog, siehe [oben](#passwortabfrage-problem-und-workaround).
+- **Nicht notarisiert:** Deshalb die Warnung beim ersten Start und im Passwortdialog, siehe [oben](#passwortabfrage-problem-und-workaround).
+- **Verlauf nur im Arbeitsspeicher:** Nach einem Neustart von TidyRAM beginnt die Grafik von vorn.
+- **Tastenkürzel belegt?** Nutzt eine andere App bereits ⌃⌥⌘R, kann TidyRAM es nicht registrieren. Dann bitte im Einstellungsfenster abschalten.
 - **Nach einem neuen Build** musst du die App erneut nach `/Applications` kopieren (`./scripts/install.sh` erledigt das).
 
 ---
@@ -417,7 +479,7 @@ Das Skript beendet die App, löscht `/Applications/TidyRAM.app` und entfernt die
 ./scripts/make-pdf.sh
 ```
 
-Erzeugt `docs/TidyRAM.pdf` aus dieser README. Benötigt Google Chrome und Python 3. Das Skript legt beim ersten Lauf eine lokale Umgebung `.venv/` mit dem Paket `markdown` an.
+Erzeugt `docs/TidyRAM.pdf` (Deutsch) und `docs/TidyRAM-en.pdf` (Englisch). Benötigt Google Chrome und Python 3. Das Skript legt beim ersten Lauf eine lokale Umgebung `.venv/` mit dem Paket `markdown` an.
 
 ---
 
@@ -428,9 +490,9 @@ TidyRAM ist ein **Vibe-Coding-Projekt**. Ich habe keinen Code von Hand geschrieb
 **So lief es ab:**
 
 1. **Idee:** „Eine App für macOS, die ungenutzten RAM freigibt, ohne wichtige Infos zu verlieren oder Programme zu beschädigen.“
-2. **Umsetzung durch Claude:** Swift/SwiftUI-Code, Build-Skript, App-Symbol, GitHub-Workflows, README und PDF.
-3. **Testen auf dem echten Mac:** Speicherwerte mit `vm_stat`, `top` und `memory_pressure` abgeglichen, Freigeben ausprobiert, Screenshots geprüft.
-4. **Nachschärfen im Gespräch:** zum Beispiel der Workaround für die Passwortabfrage, die richtige Zählung von Browser-Tabs, ein neuer Name und Open Source.
+2. **Umsetzung durch Claude:** Swift/SwiftUI-Code, Build-Skript, App-Symbol, Übersetzung, GitHub-Workflows, Homebrew-Formel, README und PDF.
+3. **Testen auf dem echten Mac:** Speicherwerte mit `vm_stat`, `top` und `memory_pressure` abgeglichen, Freigeben ausprobiert, Screenshots in beiden Sprachen geprüft.
+4. **Nachschärfen im Gespräch:** zum Beispiel der Workaround für die Passwortabfrage, die richtige Zählung von Browser-Tabs, ein neuer Name, Open Source und eine Prüfung auf private Daten im Repo.
 
 **Was das für dich bedeutet:**
 
@@ -438,32 +500,19 @@ TidyRAM ist ein **Vibe-Coding-Projekt**. Ich habe keinen Code von Hand geschrieb
 - Die Sicherheitsgrundsätze (nur `purge`, kein erzwungenes Beenden, nur lesender Zugriff auf andere Prozesse) wurden bewusst so vorgegeben und sind im Code und in dieser README dokumentiert.
 - Die Commits sind mit `Co-Authored-By: Claude` gekennzeichnet.
 
-Fehler gefunden oder eine Idee? [Issue öffnen](https://github.com/seyi23/TidyRAM/issues). Gern auch mit Vibe Coding gelöst.
+Fehler gefunden oder eine Idee? [Issue öffnen](https://github.com/seyi23/TidyRAM/issues/new/choose). Gern auch mit Vibe Coding gelöst.
 
 ---
 
 ## Mitmachen
 
-Fehlermeldungen, Ideen und Pull Requests sind willkommen.
+Fehlermeldungen, Ideen, Übersetzungen und Pull Requests sind willkommen. Alles Nötige steht in [CONTRIBUTING.md](CONTRIBUTING.md), unter anderem:
 
-1. Repository forken und einen Branch anlegen
-2. Änderungen machen. Der Code ist ausführlich kommentiert, der Einstieg ist [`Sources/TidyRAMApp.swift`](Sources/TidyRAMApp.swift)
-3. Mit `./build.sh` bauen und die App testen
-4. Pull Request öffnen und kurz beschreiben, was sich ändert und warum. GitHub Actions baut ihn automatisch
+- wie du baust und testest,
+- wie du eine **weitere Sprache** hinzufügst (eine Datei kopieren und übersetzen),
+- wie eine neue Version veröffentlicht wird.
 
-**Neue Version veröffentlichen** (für Maintainer):
-
-1. `VERSION` in `build.sh` erhöhen und einen Abschnitt in `CHANGELOG.md` ergänzen
-2. Committen und pushen
-3. Tag setzen und pushen. Den Rest erledigt GitHub Actions:
-   ```bash
-   git tag v1.2.0
-   ```
-   ```bash
-   git push origin v1.2.0
-   ```
-
-Grundsatz für alle Änderungen: **Nichts darf Programme beschädigen oder Daten gefährden.** Kein erzwungenes Beenden, kein Eingriff in fremde Prozesse, mit Admin-Rechten nur fest eingetragene Apple-Werkzeuge.
+Grundsatz für alle Änderungen: **Nichts darf Programme beschädigen oder Daten gefährden.** Kein erzwungenes Beenden, kein Eingriff in fremde Prozesse, mit Admin-Rechten nur fest eingetragene Apple-Werkzeuge, keine Netzwerkzugriffe.
 
 ---
 

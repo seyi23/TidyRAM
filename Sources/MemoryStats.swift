@@ -35,13 +35,13 @@ import Foundation
 enum MemoryPressure: Sendable {
     case normal, warning, critical, unknown
 
-    /// Deutscher Anzeigetext für das Badge in der Oberfläche.
+    /// Übersetzter Anzeigetext für das Badge in der Oberfläche.
     var label: String {
         switch self {
-        case .normal: "Normal"
-        case .warning: "Erhöht"
-        case .critical: "Kritisch"
-        case .unknown: "Unbekannt"
+        case .normal: String(localized: "Normal")
+        case .warning: String(localized: "Erhöht")
+        case .critical: String(localized: "Kritisch")
+        case .unknown: String(localized: "Unbekannt")
         }
     }
 }

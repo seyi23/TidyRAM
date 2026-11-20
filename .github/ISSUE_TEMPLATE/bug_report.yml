@@ -1,0 +1,63 @@
+name: "🐞 Fehler melden / Bug report"
+description: "Etwas funktioniert nicht wie erwartet / Something doesn't work as expected"
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Danke für die Meldung! Bitte keine Passwörter oder persönlichen Daten einfügen.
+        Thanks for reporting! Please don't paste passwords or personal data.
+  - type: textarea
+    id: what
+    attributes:
+      label: "Was ist passiert? / What happened?"
+      description: "Und was hättest du erwartet? / And what did you expect?"
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: "Schritte zum Nachstellen / Steps to reproduce"
+      placeholder: |
+        1. …
+        2. …
+  - type: input
+    id: version
+    attributes:
+      label: "TidyRAM-Version / TidyRAM version"
+      description: "Einstellungen → Über TidyRAM / Settings → About TidyRAM"
+      placeholder: "1.3.0"
+    validations:
+      required: true
+  - type: input
+    id: macos
+    attributes:
+      label: "macOS-Version / macOS version"
+      placeholder: "macOS 27.2"
+    validations:
+      required: true
+  - type: dropdown
+    id: chip
+    attributes:
+      label: "Mac"
+      options:
+        - "Apple Silicon (M1, M2, …)"
+        - "Intel"
+    validations:
+      required: true
+  - type: dropdown
+    id: install
+    attributes:
+      label: "Installiert über / Installed via"
+      options:
+        - "GitHub-Release (ZIP)"
+        - "Homebrew"
+        - "Selbst gebaut / Built from source"
+  - type: dropdown
+    id: passwordless
+    attributes:
+      label: "Freigeben ohne Passwort eingerichtet? / Passwordless freeing set up?"
+      options:
+        - "Ja / Yes"
+        - "Nein / No"
+        - "Weiß nicht / Don't know"

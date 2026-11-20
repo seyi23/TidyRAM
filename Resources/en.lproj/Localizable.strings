@@ -1,0 +1,92 @@
+/*
+  Localizable.strings (English)
+  TidyRAM
+
+  The German text is the key (development language), the English text is the
+  translation. %@ = text/number placeholder, %lld = whole number.
+  To add another language: copy this file to <code>.lproj/Localizable.strings
+  and translate the right-hand side.
+*/
+
+/* Menu bar window */
+"%@ von %@ belegt" = "%@ of %@ used";
+"Speicherdruck laut macOS" = "Memory pressure as reported by macOS";
+"Einstellungen" = "Settings";
+"Apps" = "Apps";
+"Reserviert" = "Wired";
+"Komprimiert" = "Compressed";
+"Datei-Cache" = "File cache";
+"Frei" = "Free";
+"Swap" = "Swap";
+"Verlauf (letzte Stunde)" = "History (last hour)";
+"Verlauf wird gesammelt …" = "Collecting history …";
+"Start" = "Start";
+"Ende" = "End";
+"Min" = "Min";
+"Max" = "Max";
+"Zeit" = "Time";
+"Belegt" = "Used";
+"Wird freigegeben …" = "Freeing …";
+"Ungenutzten RAM freigeben" = "Free unused RAM";
+"Auch mit %@ von überall" = "Also with %@ from anywhere";
+"Leert nur den Datei-Cache. Programme und ihre Daten bleiben unberührt." = "Only clears the file cache. Apps and their data stay untouched.";
+"Ohne Passwort eingerichtet" = "Set up without password";
+"Fragt nach Passwort" = "Asks for password";
+"Größte Apps (inkl. Tabs & Hilfsprozesse)" = "Largest apps (incl. tabs & helpers)";
+"aktiv" = "active";
+"%lld Prozesse inkl. Tabs und Hilfsprozesse" = "%lld processes incl. tabs and helpers";
+"Speicher von %@ inkl. aller Hilfsprozesse" = "Memory of %@ incl. all helper processes";
+"%@ regulär beenden (wie ⌘Q – fragt bei ungesicherten Daten nach)" = "Quit %@ normally (like ⌘Q – asks about unsaved data)";
+"Bei Anmeldung starten" = "Launch at login";
+"Beenden" = "Quit";
+
+/* Memory pressure */
+"Normal" = "Normal";
+"Erhöht" = "Elevated";
+"Kritisch" = "Critical";
+"Unbekannt" = "Unknown";
+
+/* Freeing memory */
+"%@ freigegeben" = "%@ freed";
+"Automatisch: %@ freigegeben" = "Automatic: %@ freed";
+"Abgebrochen." = "Cancelled.";
+"Fehler: %@" = "Error: %@";
+"purge fehlgeschlagen" = "purge failed";
+"TidyRAM möchte ungenutzten Datei-Cache freigeben." = "TidyRAM wants to free unused file cache.";
+"Autostart: %@" = "Launch at login: %@";
+
+/* Notifications */
+"Arbeitsspeicher kritisch knapp" = "Memory critically low";
+"Arbeitsspeicher wird knapp" = "Memory is getting low";
+"%@ von %@ belegt." = "%@ of %@ used.";
+"%@ belegt %@. Große Apps zu schließen hilft am meisten." = "%@ uses %@. Quitting large apps helps the most.";
+
+/* Settings window */
+"Menüleiste" = "Menu bar";
+"Anzeige" = "Display";
+"Belegter Speicher in Prozent" = "Used memory in percent";
+"Belegter Speicher in GB" = "Used memory in GB";
+"Farbpunkt für den Speicherdruck" = "Colored dot for memory pressure";
+"Nur das Symbol" = "Icon only";
+"Mitteilungen" = "Notifications";
+"Mitteilung senden" = "Send notification";
+"Nie" = "Never";
+"Bei kritischem Speicherdruck" = "On critical memory pressure";
+"Schon bei erhöhtem Speicherdruck" = "Already on elevated memory pressure";
+"Höchstens alle 10 Minuten, mit der App, die gerade am meisten Speicher belegt." = "At most every 10 minutes, naming the app that currently uses the most memory.";
+"Automatisch freigeben" = "Free automatically";
+"Datei-Cache bei erhöhtem Speicherdruck automatisch freigeben" = "Automatically free the file cache on elevated memory pressure";
+"Höchstens alle" = "At most every";
+"15 Minuten" = "15 minutes";
+"30 Minuten" = "30 minutes";
+"60 Minuten" = "60 minutes";
+"Nur verfügbar, wenn das Freigeben ohne Passwort eingerichtet ist (siehe README)." = "Only available when freeing without password is set up (see README).";
+"Ehrlicher Hinweis: macOS verwaltet den Cache selbst sehr gut. Wirklich Platz schafft nur das Schließen großer Apps." = "Honest note: macOS manages the cache very well on its own. Only quitting large apps really frees up space.";
+"Tastenkürzel" = "Keyboard shortcut";
+"%@ gibt RAM von überall frei" = "%@ frees RAM from anywhere";
+"Allgemein" = "General";
+"Über TidyRAM" = "About TidyRAM";
+"Version" = "Version";
+"Lizenz" = "License";
+"MIT – kostenlos & Open Source" = "MIT – free & open source";
+"Vibe-coded mit Claude" = "Vibe-coded with Claude";

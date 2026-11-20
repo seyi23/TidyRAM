@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: "📖 Dokumentation (Deutsch)"
+    url: https://github.com/seyi23/TidyRAM#readme
+    about: "Installation, Passwort-Workaround, Fehlerbehebung"
+  - name: "📖 Documentation (English)"
+    url: https://github.com/seyi23/TidyRAM/blob/main/README.en.md
+    about: "Installation, password workaround, troubleshooting"

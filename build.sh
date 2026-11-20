@@ -13,7 +13,7 @@
 set -euo pipefail
 cd "${0:A:h}"   # ins Verzeichnis dieses Skripts wechseln
 
-VERSION="1.2.0"
+VERSION="1.3.0"
 APP=build/TidyRAM.app
 BIN="$APP/Contents/MacOS/TidyRAM"
 
@@ -53,6 +53,10 @@ rm -rf build/obj
 # App-Symbol (erzeugt mit: swift scripts/make-icon.swift)
 cp Resources/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
 
+# Übersetzungen: de.lproj (Entwicklungssprache) und en.lproj (Englisch).
+# macOS wählt automatisch die Sprache des Systems.
+cp -R Resources/*.lproj "$APP/Contents/Resources/"
+
 # Info.plist – LSUIElement = true macht daraus eine reine Menüleisten-App
 # (kein Dock-Symbol, kein App-Menü).
 cat > "$APP/Contents/Info.plist" <<PLIST
@@ -61,6 +65,8 @@ cat > "$APP/Contents/Info.plist" <<PLIST
 <plist version="1.0">
 <dict>
   <key>CFBundleName</key><string>TidyRAM</string>
+  <key>CFBundleDevelopmentRegion</key><string>de</string>
+  <key>CFBundleLocalizations</key><array><string>de</string><string>en</string></array>
   <key>CFBundleDisplayName</key><string>TidyRAM</string>
   <key>CFBundleIdentifier</key><string>local.tidyram</string>
   <key>CFBundleExecutable</key><string>TidyRAM</string>

@@ -2,6 +2,25 @@
 
 Alle wichtigen Änderungen an TidyRAM. Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionen nach [Semantic Versioning](https://semver.org/lang/de/).
 
+## [1.3.0] – 2026-11-20
+
+### Neu
+- **Verlaufsgrafik:** belegter Speicher der letzten Stunde. Zeiten mit erhöhtem oder kritischem Speicherdruck sind farbig hinterlegt
+- **Mitteilungen bei Speicherknappheit:** mit der App, die gerade am meisten belegt, höchstens alle 10 Minuten
+- **Einstellungsfenster** (Zahnrad im TidyRAM-Fenster) mit allen Optionen
+- **Anzeige in der Menüleiste wählbar:** Prozent, GB, Farbpunkt für den Speicherdruck oder nur das Symbol
+- **Tastenkürzel ⌃⌥⌘R:** RAM von überall freigeben, Ergebnis als Mitteilung
+- **Automatisch freigeben (optional, standardmäßig aus):** bei erhöhtem Speicherdruck, höchstens alle 15, 30 oder 60 Minuten. Nur mit eingerichtetem Freigeben ohne Passwort
+- **Englische Übersetzung:** App folgt der Systemsprache. Dazu README und PDF auf Englisch
+- **Homebrew:** `brew install --cask seyi23/tidyram/tidyram`
+- **CONTRIBUTING.md**, Vorlagen für Issues und Pull Requests
+
+### Geändert
+- Git-Verlauf bereinigt: Commits verwenden die anonyme GitHub-Adresse statt einer privaten E-Mail
+
+### New (English summary)
+History chart, low-memory notifications, settings window, selectable menu bar display, global shortcut ⌃⌥⌘R, optional automatic freeing, English localization, Homebrew cask, contribution guide and issue templates.
+
 ## [1.2.0] – 2026-11-20
 
 ### Neu

@@ -1,0 +1,19 @@
+name: "💡 Idee vorschlagen / Feature request"
+description: "Eine neue Funktion oder Verbesserung / A new feature or improvement"
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Hinweis: TidyRAM soll nie Programme beschädigen oder Daten gefährden und greift nicht aufs Netzwerk zu.
+        Note: TidyRAM must never damage apps or put data at risk, and it has no network access.
+  - type: textarea
+    id: idea
+    attributes:
+      label: "Deine Idee / Your idea"
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: "Wofür brauchst du das? / What would you use it for?"

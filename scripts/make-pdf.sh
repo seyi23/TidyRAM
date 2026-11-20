@@ -1,8 +1,10 @@
 #!/bin/zsh
 #
-# make-pdf.sh – erzeugt docs/TidyRAM.pdf aus README.md
+# make-pdf.sh – erzeugt die PDF-Dokumentation in beiden Sprachen:
+#   README.md    → docs/TidyRAM.pdf     (Deutsch)
+#   README.en.md → docs/TidyRAM-en.pdf  (Englisch)
 #
-# Ablauf: README.md → HTML (Python-Paket "markdown") → PDF (Chrome headless).
+# Ablauf: Markdown → HTML (Python-Paket "markdown") → PDF (Chrome headless).
 # Beim ersten Lauf wird eine lokale Python-Umgebung .venv/ angelegt.
 #
 # Benötigt: Python 3, Google Chrome.
@@ -22,16 +24,31 @@ fi
 
 TMP=$(mktemp -d)
 trap 'rm -rf "$TMP"' EXIT
+mkdir -p docs
+
+# Eine Sprache bauen: make_pdf <quelle.md> <ziel.pdf> <sprachcode> <titel>
+make_pdf() {
+  local src=$1 out=$2 lang=$3 title=$4
 
 # Markdown → HTML mit Druck-Stylesheet.
-.venv/bin/python - "$ROOT" "$TMP/doc.html" <<'PY'
+.venv/bin/python - "$ROOT" "$TMP/doc.html" "$src" "$lang" "$title" <<'PY'
 import sys, pathlib, markdown
 from markdown.extensions.toc import slugify_unicode
 
 root, out = pathlib.Path(sys.argv[1]), pathlib.Path(sys.argv[2])
-md = (root / "README.md").read_text(encoding="utf-8")
-# Badges (Build-Status, Release) sind Live-Bilder von GitHub – im PDF weglassen.
-md = "\n".join(l for l in md.split("\n") if not l.startswith("[!["))
+source, lang, title = sys.argv[3], sys.argv[4], sys.argv[5]
+md = (root / source).read_text(encoding="utf-8")
+# Badges (Build-Status, Release) sind Live-Bilder von GitHub, die Sprachumschaltung
+# verweist auf die jeweils andere README – beides im PDF weglassen.
+md = "\n".join(l for l in md.split("\n")
+               if not l.startswith("[![") and not l.startswith(("**Deutsch** |", "[Deutsch](")))
+
+# Relative Links (LICENSE, Sources/…) würden im PDF zu lokalen file://-Pfaden
+# und damit Benutzername und Ordnerstruktur verraten. Deshalb zeigen sie im PDF
+# auf die Dateien im GitHub-Repository.
+import re
+md = re.sub(r"\]\((?!https?:|#|mailto:)([^)\s]+)\)",
+            r"](https://github.com/seyi23/TidyRAM/blob/main/\1)", md)
 
 # Python-Markdown erkennt eingerückte ```-Codeblöcke in Listen nicht (GitHub
 # schon). Für das PDF werden sie daher ausgerückt und von Leerzeilen umgeben.
@@ -85,16 +102,18 @@ blockquote { margin: 8pt 0; padding: 6pt 10pt; border-left: 3pt solid #e0a800;
              background: #fff8e1; color: #4a4030; }
 blockquote p { margin: 2pt 0; }
 """
-html = f"""<!doctype html><html lang="de"><head><meta charset="utf-8">
-<base href="{root.as_uri()}/"><title>TidyRAM – Dokumentation</title>
+html = f"""<!doctype html><html lang="{lang}"><head><meta charset="utf-8">
+<base href="{root.as_uri()}/"><title>{title}</title>
 <style>{css}</style></head><body>{body}</body></html>"""
 out.write_text(html, encoding="utf-8")
 PY
 
 # HTML → PDF
-mkdir -p docs
 "$CHROME" --headless=new --disable-gpu --no-pdf-header-footer \
   --allow-file-access-from-files \
-  --print-to-pdf="$ROOT/docs/TidyRAM.pdf" "file://$TMP/doc.html" 2>/dev/null
+  --print-to-pdf="$ROOT/$out" "file://$TMP/doc.html" 2>/dev/null
+echo "Fertig: $ROOT/$out"
+}
 
-echo "Fertig: $ROOT/docs/TidyRAM.pdf"
+make_pdf README.md    docs/TidyRAM.pdf    de "TidyRAM – Dokumentation"
+make_pdf README.en.md docs/TidyRAM-en.pdf en "TidyRAM – Documentation"
