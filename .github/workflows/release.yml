@@ -1,0 +1,56 @@
+# Erstellt automatisch ein GitHub-Release mit fertiger App, sobald ein
+# Versions-Tag gepusht wird:
+#
+#   git tag v1.2.0
+#   git push origin v1.2.0
+#
+# Das Release enthält TidyRAM-<version>.zip (Universal: Apple Silicon + Intel).
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write   # nötig, um ein Release anzulegen
+
+jobs:
+  release:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Schutz vor Versehen: Tag (v1.2.0) muss zu VERSION in build.sh passen.
+      - name: Version prüfen
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          BUILD_VERSION=$(sed -n 's/^VERSION="\(.*\)"/\1/p' build.sh)
+          echo "Tag: $TAG, build.sh: $BUILD_VERSION"
+          test "$TAG" = "$BUILD_VERSION"
+
+      - name: Universal-Build
+        run: ./build.sh --universal
+
+      - name: ZIP erstellen
+        run: ditto -c -k --keepParent build/TidyRAM.app "TidyRAM-${GITHUB_REF_NAME#v}.zip"
+
+      - name: Release veröffentlichen
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          # Abschnitt dieser Version aus CHANGELOG.md als Release-Text verwenden.
+          awk -v v="$VERSION" '
+            $0 ~ "^## \\[?"v"\\]?" {found=1; next}
+            found && /^## / {exit}
+            found {print}
+          ' CHANGELOG.md > notes.md
+          cat >> notes.md <<'EOF'
+
+          ---
+          **Installation:** ZIP herunterladen, entpacken, `TidyRAM.app` in den Ordner „Programme“ ziehen.
+          Beim ersten Start meldet macOS, dass die App nicht überprüft werden kann (sie ist nicht von Apple notarisiert).
+          Dann: *Systemeinstellungen → Datenschutz & Sicherheit → „Dennoch öffnen“*. Details in der README.
+          EOF
+          gh release create "$GITHUB_REF_NAME" "TidyRAM-$VERSION.zip" \
+            --title "TidyRAM $VERSION" --notes-file notes.md

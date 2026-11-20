@@ -133,12 +133,8 @@ struct MemoryStats: Sendable {
 
 // MARK: - Hilfsfunktionen
 
-/// Tatsächlicher Speicherverbrauch ("Footprint") eines Prozesses – derselbe
-/// Wert, den die Aktivitätsanzeige in der Spalte "Speicher" zeigt.
-///
-/// Hinweis: Es wird nur der Hauptprozess gezählt. Browser wie Safari oder
-/// Firefox verteilen Tabs auf viele Hilfsprozesse; ihr echter Verbrauch ist
-/// deshalb höher als hier angezeigt.
+/// Tatsächlicher Speicherverbrauch ("Footprint") eines einzelnen Prozesses –
+/// derselbe Wert, den die Aktivitätsanzeige in der Spalte "Speicher" zeigt.
 ///
 /// Gibt `nil` zurück, wenn der Prozess nicht (mehr) existiert oder einem
 /// anderen Benutzer gehört.
@@ -151,6 +147,57 @@ func physicalFootprint(of pid: pid_t) -> UInt64? {
         }
     }
     return result == 0 ? info.ri_phys_footprint : nil
+}
+
+/// Speicherverbrauch einer App inklusive aller Hilfsprozesse.
+struct AppFootprint {
+    var bytes: UInt64 = 0
+    var processCount = 0
+}
+
+/// Summiert den Speicher ALLER laufenden Prozesse, gruppiert nach der App,
+/// die für sie "verantwortlich" ist.
+///
+/// Warum? Moderne Apps verteilen ihre Arbeit auf viele Prozesse: Safari startet
+/// pro Tab einen "WebContent"-Prozess, Chrome/Firefox/Electron-Apps (z. B.
+/// ChatGPT, Claude, VS Code) haben "Helper"-Prozesse. Zählt man nur den
+/// Hauptprozess, wirkt Safari mit 300 MB harmlos, obwohl es inkl. Tabs 3 GB
+/// belegt.
+///
+/// Wie? macOS merkt sich für jeden Prozess, welche App ihn verantwortet
+/// ("responsible process") – dieselbe Information nutzt die Aktivitätsanzeige.
+/// Die Funktion `responsibility_get_pid_responsible_for_pid` ist nicht offiziell
+/// dokumentiert, deshalb wird sie zur Laufzeit per `dlsym` gesucht. Fehlt sie in
+/// einer künftigen macOS-Version, zählt jeder Prozess einfach für sich selbst –
+/// die App funktioniert dann weiter wie vorher.
+///
+/// Rückgabe: Wörterbuch "PID der verantwortlichen App → Summe". Prozesse anderer
+/// Benutzer (z. B. root) sind nicht lesbar und werden übersprungen.
+/// Laufzeit: ca. 5 ms für ~700 Prozesse.
+func footprintsByResponsibleApp() -> [pid_t: AppFootprint] {
+    typealias ResponsibleFn = @convention(c) (pid_t) -> pid_t
+    let responsible: ResponsibleFn? = dlsym(UnsafeMutableRawPointer(bitPattern: -2), // RTLD_DEFAULT
+                                            "responsibility_get_pid_responsible_for_pid")
+        .map { unsafeBitCast($0, to: ResponsibleFn.self) }
+
+    // Alle Prozess-IDs holen. Etwas Puffer, falls zwischendurch neue entstehen.
+    let estimate = Int(proc_listallpids(nil, 0)) + 64
+    var pids = [pid_t](repeating: 0, count: estimate)
+    let count = pids.withUnsafeMutableBufferPointer {
+        proc_listallpids($0.baseAddress, Int32($0.count * MemoryLayout<pid_t>.size))
+    }
+    guard count > 0 else { return [:] }
+
+    var result: [pid_t: AppFootprint] = [:]
+    for pid in pids.prefix(Int(count)) where pid > 0 {
+        guard let bytes = physicalFootprint(of: pid) else { continue }
+        // Verantwortliche App ermitteln; bei Fehler (≤ 0) zählt der Prozess für sich.
+        let owner = responsible?(pid) ?? pid
+        let key = owner > 0 ? owner : pid
+        result[key, default: AppFootprint()].bytes += bytes
+        result[key, default: AppFootprint()].processCount += 1
+    }
+    return result
 }
 
 /// Formatiert Bytes für die Anzeige, z. B. "4,2 GB" (Basis 1024, wie die

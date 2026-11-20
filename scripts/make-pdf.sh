@@ -30,6 +30,26 @@ from markdown.extensions.toc import slugify_unicode
 
 root, out = pathlib.Path(sys.argv[1]), pathlib.Path(sys.argv[2])
 md = (root / "README.md").read_text(encoding="utf-8")
+# Badges (Build-Status, Release) sind Live-Bilder von GitHub – im PDF weglassen.
+md = "\n".join(l for l in md.split("\n") if not l.startswith("[!["))
+
+# Python-Markdown erkennt eingerückte ```-Codeblöcke in Listen nicht (GitHub
+# schon). Für das PDF werden sie daher ausgerückt und von Leerzeilen umgeben.
+lines, fixed, indent = md.split("\n"), [], None
+for line in lines:
+    stripped = line.lstrip()
+    if indent is None and stripped.startswith("```") and line != stripped:
+        indent = len(line) - len(stripped)
+        fixed += ["", stripped]
+    elif indent is not None:
+        fixed.append(line[indent:] if line[:indent].strip() == "" else stripped)
+        if stripped.startswith("```"):
+            indent = None
+            fixed.append("")
+    else:
+        fixed.append(line)
+md = "\n".join(fixed)
+
 body = markdown.markdown(
     md,
     extensions=["tables", "fenced_code", "toc", "sane_lists"],

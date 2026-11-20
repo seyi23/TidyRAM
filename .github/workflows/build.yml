@@ -1,0 +1,33 @@
+# Baut TidyRAM bei jedem Push und Pull Request auf einem macOS-Runner.
+# So sieht man sofort, ob der Code noch kompiliert.
+name: Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Swift-Version anzeigen
+        run: swift --version
+
+      - name: Universal-Build (Apple Silicon + Intel)
+        run: ./build.sh --universal
+
+      - name: Architekturen prüfen
+        run: lipo -archs build/TidyRAM.app/Contents/MacOS/TidyRAM
+
+      - name: App als ZIP verpacken
+        run: ditto -c -k --keepParent build/TidyRAM.app TidyRAM.zip
+
+      # Fertige App zum Herunterladen unter "Actions" → Lauf → "Artifacts".
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TidyRAM
+          path: TidyRAM.zip

@@ -184,7 +184,7 @@ struct ContentView: View {
 
     private var appsSection: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("Größte Apps").font(.subheadline.weight(.semibold))
+            Text("Größte Apps (inkl. Tabs & Hilfsprozesse)").font(.subheadline.weight(.semibold))
             ForEach(monitor.apps) { usage in
                 HStack(spacing: 8) {
                     if let icon = usage.icon {
@@ -195,8 +195,16 @@ struct ContentView: View {
                         Text("aktiv").font(.caption2).foregroundStyle(.secondary)
                     }
                     Spacer()
+                    // Anzahl Prozesse (z. B. Safari-Tabs), nur wenn es mehr als einer ist.
+                    if usage.processCount > 1 {
+                        Label("\(usage.processCount)", systemImage: "square.stack")
+                            .labelStyle(.titleAndIcon)
+                            .font(.caption2).foregroundStyle(.tertiary)
+                            .help("\(usage.processCount) Prozesse inkl. Tabs und Hilfsprozesse")
+                    }
                     Text(formatBytes(usage.footprint))
                         .monospacedDigit().foregroundStyle(.secondary)
+                        .help("Speicher von \(usage.name) inkl. aller Hilfsprozesse")
                     // Reguläres Beenden (wie ⌘Q) – siehe MemoryMonitor.quit.
                     Button {
                         monitor.quit(usage)

@@ -24,7 +24,8 @@ struct AppUsage: Identifiable {
     let id: pid_t                 // Prozess-ID, eindeutig für die Liste
     let name: String              // angezeigter App-Name
     let icon: NSImage?            // App-Symbol
-    let footprint: UInt64         // Speicherverbrauch in Bytes
+    let footprint: UInt64         // Speicherverbrauch in Bytes, inkl. Hilfsprozesse
+    let processCount: Int         // Anzahl Prozesse (Hauptprozess + Helfer/Tabs)
     let isActive: Bool            // ist das die App im Vordergrund?
     let app: NSRunningApplication // Referenz zum regulären Beenden
 }
@@ -71,6 +72,9 @@ final class MemoryMonitor {
         if let s = MemoryStats.current() { stats = s }
 
         let me = ProcessInfo.processInfo.processIdentifier
+        // Speicher aller Prozesse, summiert pro verantwortlicher App
+        // (Safari + alle Tab-Prozesse, Chrome + alle Helper usw.).
+        let totals = footprintsByResponsibleApp()
         apps = NSWorkspace.shared.runningApplications
             // Nur "richtige" Apps mit Dock-Symbol, nicht uns selbst, keine Systemprozesse.
             .filter {
@@ -78,14 +82,15 @@ final class MemoryMonitor {
                     && $0.processIdentifier != me
                     && !protectedBundleIDs.contains($0.bundleIdentifier ?? "")
             }
-            // Speicherverbrauch ermitteln; Apps ohne lesbaren Wert fallen raus.
+            // Speicherverbrauch zuordnen; Apps ohne lesbaren Wert fallen raus.
             .compactMap { app in
-                guard let fp = physicalFootprint(of: app.processIdentifier) else { return nil }
+                guard let total = totals[app.processIdentifier], total.bytes > 0 else { return nil }
                 return AppUsage(
                     id: app.processIdentifier,
                     name: app.localizedName ?? "?",
                     icon: app.icon,
-                    footprint: fp,
+                    footprint: total.bytes,
+                    processCount: total.processCount,
                     isActive: app.isActive,
                     app: app)
             }

@@ -1,4 +1,12 @@
+<p align="center">
+  <img src="docs/icon.png" alt="TidyRAM-Symbol" width="128">
+</p>
+
 # TidyRAM
+
+[![Build](https://github.com/seyi23/TidyRAM/actions/workflows/build.yml/badge.svg)](https://github.com/seyi23/TidyRAM/actions/workflows/build.yml)
+[![Release](https://img.shields.io/github/v/release/seyi23/TidyRAM)](https://github.com/seyi23/TidyRAM/releases/latest)
+[![Lizenz: MIT](https://img.shields.io/badge/Lizenz-MIT-green.svg)](LICENSE)
 
 Eine schlanke Menüleisten-App für macOS, die den Arbeitsspeicher übersichtlich anzeigt und ungenutzten RAM (den Datei-Cache) sicher freigibt, ohne laufende Programme oder deren Daten anzutasten.
 
@@ -8,9 +16,10 @@ Eine schlanke Menüleisten-App für macOS, die den Arbeitsspeicher übersichtlic
 
 > **Kostenlos und Open Source.** TidyRAM steht unter der MIT-Lizenz. Du darfst die App kostenlos nutzen, den Quellcode lesen, ändern und weitergeben. Es gibt keine Werbung, kein Tracking, keine Netzwerkzugriffe und keine In-App-Käufe.
 
-- **Plattform:** macOS 14 (Sonoma) oder neuer, getestet auf macOS 27.2, Apple Silicon
+- **Plattform:** macOS 14 (Sonoma) oder neuer, Apple Silicon und Intel (getestet auf macOS 27.2, Apple Silicon)
 - **Sprache:** Swift 6 / SwiftUI, keine externen Abhängigkeiten
-- **Version:** 1.1.0
+- **Version:** 1.2.0 ([Änderungen](CHANGELOG.md))
+- **Download:** [neueste Version](https://github.com/seyi23/TidyRAM/releases/latest)
 - **Lizenz:** MIT (kostenlos, Open Source)
 
 ---
@@ -44,7 +53,7 @@ Eine schlanke Menüleisten-App für macOS, die den Arbeitsspeicher übersichtlic
 | **Speicherdruck** | Badge *Normal*, *Erhöht* oder *Kritisch*, direkt vom macOS-Kernel. |
 | **Ungenutzten RAM freigeben** | Leert den Datei-Cache mit Apples `purge` und zeigt an, wie viel frei wurde. |
 | **Ohne Passwort (optional)** | Mit einer eng begrenzten sudo-Regel läuft das Freigeben ohne Passwortdialog. Die App zeigt an, ob das aktiv ist. |
-| **Größte Apps** | Die 8 Programme mit dem größten Speicherverbrauch. Mit ✕ beendest du sie regulär (wie ⌘Q). |
+| **Größte Apps** | Die 8 Programme mit dem größten Speicherverbrauch, **inklusive aller Tabs und Hilfsprozesse** (Safari, Chrome, Firefox, Electron-Apps). Mit ✕ beendest du sie regulär (wie ⌘Q). |
 | **Bei Anmeldung starten** | Autostart über die offizielle macOS-API (`SMAppService`). |
 
 ---
@@ -70,7 +79,22 @@ TidyRAM ist bewusst **vorsichtig** gebaut:
 
 ## Installation
 
-### Voraussetzungen
+### Variante 1: Fertige App herunterladen (am einfachsten)
+
+1. Unter [**Releases**](https://github.com/seyi23/TidyRAM/releases/latest) die Datei `TidyRAM-<version>.zip` herunterladen.
+2. Entpacken und `TidyRAM.app` in den Ordner **Programme** ziehen.
+3. TidyRAM öffnen. Beim ersten Start meldet macOS, dass die App nicht überprüft werden kann. Das liegt daran, dass sie nicht von Apple notarisiert ist (siehe [Hinweis zum ersten Start](#hinweis-zum-ersten-start)). So öffnest du sie trotzdem:
+    - **Systemeinstellungen → Datenschutz & Sicherheit**, ganz nach unten scrollen, bei TidyRAM auf **„Dennoch öffnen“** klicken und bestätigen.
+    - Oder im Terminal das Download-Kennzeichen entfernen:
+      ```bash
+      xattr -dr com.apple.quarantine /Applications/TidyRAM.app
+      ```
+
+Die App läuft auf Apple Silicon und Intel (Universal Binary).
+
+### Variante 2: Selbst bauen
+
+**Voraussetzungen:**
 
 - macOS 14 oder neuer
 - Xcode oder die Xcode Command Line Tools:
@@ -78,10 +102,10 @@ TidyRAM ist bewusst **vorsichtig** gebaut:
   xcode-select --install
   ```
 
-### Bauen und installieren (empfohlen)
+**Bauen und installieren:**
 
 ```bash
-git clone <repo-url> TidyRAM
+git clone https://github.com/seyi23/TidyRAM.git
 ```
 ```bash
 cd TidyRAM
@@ -92,17 +116,20 @@ cd TidyRAM
 
 Das Skript baut die App, kopiert sie nach `/Applications` und startet sie. Danach erscheint das Chip-Symbol oben rechts in der Menüleiste.
 
-### Nur bauen
+**Nur bauen:**
 
 ```bash
 ./build.sh
 ```
 
-Das Ergebnis liegt in `build/TidyRAM.app`. Du kannst es per Doppelklick starten oder von Hand in den Ordner „Programme“ ziehen.
+Das Ergebnis liegt in `build/TidyRAM.app`. Du kannst es per Doppelklick starten oder von Hand in den Ordner „Programme“ ziehen. Mit `./build.sh --universal` entsteht eine Version für Apple Silicon **und** Intel.
 
 ### Hinweis zum ersten Start
 
-Die App ist nur lokal signiert (ad hoc) und nicht von Apple notarisiert. Selbst gebaut startet sie ohne Rückfrage. Lädt jemand eine fertige `.app` aus dem Internet herunter, blockiert Gatekeeper den Start. Dann hilft: Rechtsklick → *Öffnen*, oder *Systemeinstellungen → Datenschutz & Sicherheit → Dennoch öffnen*.
+Die App ist nur lokal signiert (ad hoc) und nicht von Apple notarisiert. Eine Notarisierung setzt ein kostenpflichtiges Apple-Entwicklerkonto voraus.
+
+- **Selbst gebaut:** startet ohne Rückfrage.
+- **Heruntergeladen:** Gatekeeper blockiert den ersten Start. Freigabe wie oben unter Variante 1 beschrieben. Das ist nur einmal nötig.
 
 ---
 
@@ -115,7 +142,7 @@ Klicke auf das **Chip-Symbol mit der Prozentzahl** in der Menüleiste. Es öffne
 3. **„Ungenutzten RAM freigeben“:** leert den Datei-Cache. Darunter stehen
     - das Ergebnis, z. B. *„1,9 GB freigegeben“*,
     - der Passwort-Status: 🔒 *Fragt nach Passwort* oder ✔︎ *Ohne Passwort eingerichtet*.
-4. **Größte Apps:** Klick auf ✕ beendet die App regulär. Ungesicherte Dokumente lösen den normalen „Sichern?“-Dialog der App aus. Finder, Dock und andere Systemprozesse werden nie angeboten.
+4. **Größte Apps:** Speicher pro App inklusive aller Tabs und Hilfsprozesse. Die kleine Zahl mit dem Stapel-Symbol zeigt, wie viele Prozesse dazugehören. Klick auf ✕ beendet die App regulär. Ungesicherte Dokumente lösen den normalen „Sichern?“-Dialog der App aus. Finder, Dock und andere Systemprozesse werden nie angeboten.
 5. **Fußzeile:** *Bei Anmeldung starten* und *Beenden*.
 
 ---
@@ -312,21 +339,29 @@ free() { vm_stat | awk -v total=$(sysctl -n hw.memsize) '/page size of/{ps=$8} /
 ```
 TidyRAM/
 ├── Sources/
-│   ├── TidyRAMApp.swift       Einstiegspunkt, Menüleisten-Symbol
-│   ├── ContentView.swift      Oberfläche (Balken, Legende, Button, App-Liste)
-│   ├── MemoryMonitor.swift    Datenmodell: aktualisiert Werte, löst Aktionen aus
-│   ├── MemoryStats.swift      Liest den RAM beim Kernel aus (nur lesend)
-│   └── Cleaner.swift          Führt purge aus (sudo -n oder Passwortdialog)
+│   ├── TidyRAMApp.swift        Einstiegspunkt, Menüleisten-Symbol
+│   ├── ContentView.swift       Oberfläche (Balken, Legende, Button, App-Liste)
+│   ├── MemoryMonitor.swift     Datenmodell: aktualisiert Werte, löst Aktionen aus
+│   ├── MemoryStats.swift       Liest RAM und App-Verbrauch beim Kernel aus (nur lesend)
+│   └── Cleaner.swift           Führt purge aus (sudo -n oder Passwortdialog)
+├── Resources/
+│   └── AppIcon.icns            App-Symbol (erzeugt von scripts/make-icon.swift)
 ├── scripts/
-│   ├── install.sh             Bauen + nach /Applications installieren + starten
-│   ├── enable-passwordless.sh sudo-Regel für purge einrichten
+│   ├── install.sh              Bauen + nach /Applications installieren + starten
+│   ├── enable-passwordless.sh  sudo-Regel für purge einrichten
 │   ├── disable-passwordless.sh sudo-Regel entfernen
-│   ├── uninstall.sh           App und sudo-Regel entfernen
-│   └── make-pdf.sh            README.md → docs/TidyRAM.pdf
+│   ├── uninstall.sh            App und sudo-Regel entfernen
+│   ├── make-icon.swift         Zeichnet das App-Symbol per Code
+│   └── make-pdf.sh             README.md → docs/TidyRAM.pdf
 ├── docs/
+│   ├── icon.png                Symbol als Bild (für README)
 │   ├── screenshot.png
-│   └── TidyRAM.pdf            diese Dokumentation als PDF
-├── build.sh                   Kompiliert und erzeugt build/TidyRAM.app
+│   └── TidyRAM.pdf             diese Dokumentation als PDF
+├── .github/workflows/
+│   ├── build.yml               Baut bei jedem Push (GitHub Actions)
+│   └── release.yml             Erstellt bei jedem Versions-Tag ein Release
+├── build.sh                    Kompiliert und erzeugt build/TidyRAM.app
+├── CHANGELOG.md                Änderungen pro Version
 ├── README.md
 ├── LICENSE
 └── .gitignore
@@ -343,12 +378,14 @@ TidyRAM/
 | Speicherwerte | Mach-API `host_statistics64(HOST_VM_INFO64)` |
 | Speicherdruck | `sysctl kern.memorystatus_vm_pressure_level` (1/2/4) |
 | Swap | `sysctl vm.swapusage` |
-| App-Verbrauch | `proc_pid_rusage(RUSAGE_INFO_V4).ri_phys_footprint` (wie die Aktivitätsanzeige) |
+| App-Verbrauch | `proc_pid_rusage(RUSAGE_INFO_V4).ri_phys_footprint` für **alle** Prozesse (`proc_listallpids`), summiert pro verantwortlicher App über `responsibility_get_pid_responsible_for_pid`. Die Funktion ist nicht offiziell dokumentiert und wird deshalb zur Laufzeit per `dlsym` gesucht. Fehlt sie, zählt jeder Prozess für sich. Dauer: ca. 5 ms |
 | Apps beenden | `NSRunningApplication.terminate()`, regulär, nie erzwungen |
 | Freigeben | `/usr/sbin/purge` über `sudo -n`, Fallback `osascript … with administrator privileges` |
 | Autostart | `SMAppService.mainApp` |
 | Nebenläufigkeit | Swift-6-Sprachmodus (strikte Datenrennen-Prüfung). Externe Prozesse laufen in `Task.detached`, damit die Oberfläche nie blockiert |
-| Build | Direkt mit `swiftc`, ohne Xcode-Projekt, ad-hoc signiert |
+| Build | Direkt mit `swiftc`, ohne Xcode-Projekt, ad-hoc signiert. `--universal` erzeugt per `lipo` eine Version für arm64 und x86_64 |
+| App-Symbol | Per CoreGraphics gezeichnet (`scripts/make-icon.swift`), mit `iconutil` zu `.icns` gebündelt |
+| CI / Releases | GitHub Actions: `build.yml` baut bei jedem Push. `release.yml` baut bei einem Tag `vX.Y.Z` und veröffentlicht `TidyRAM-X.Y.Z.zip` mit dem passenden Abschnitt aus `CHANGELOG.md` |
 
 ---
 
@@ -364,7 +401,6 @@ Das Skript beendet die App, löscht `/Applications/TidyRAM.app` und entfernt die
 
 ## Bekannte Einschränkungen
 
-- **Browser-Verbrauch zu niedrig:** In *Größte Apps* wird nur der Hauptprozess gezählt. Safari, Firefox und Chrome verteilen Tabs auf viele Hilfsprozesse, ihr echter Verbrauch ist höher.
 - **Wirkung ist vorübergehend:** macOS füllt den Datei-Cache nach dem Freigeben wieder, und das ist so gewollt.
 - **Nicht notarisiert:** Deshalb die Warnung im Passwortdialog, siehe [oben](#passwortabfrage-problem-und-workaround).
 - **Nach einem neuen Build** musst du die App erneut nach `/Applications` kopieren (`./scripts/install.sh` erledigt das).
@@ -388,7 +424,19 @@ Fehlermeldungen, Ideen und Pull Requests sind willkommen.
 1. Repository forken und einen Branch anlegen
 2. Änderungen machen. Der Code ist ausführlich kommentiert, der Einstieg ist [`Sources/TidyRAMApp.swift`](Sources/TidyRAMApp.swift)
 3. Mit `./build.sh` bauen und die App testen
-4. Pull Request öffnen und kurz beschreiben, was sich ändert und warum
+4. Pull Request öffnen und kurz beschreiben, was sich ändert und warum. GitHub Actions baut ihn automatisch
+
+**Neue Version veröffentlichen** (für Maintainer):
+
+1. `VERSION` in `build.sh` erhöhen und einen Abschnitt in `CHANGELOG.md` ergänzen
+2. Committen und pushen
+3. Tag setzen und pushen. Den Rest erledigt GitHub Actions:
+   ```bash
+   git tag v1.2.0
+   ```
+   ```bash
+   git push origin v1.2.0
+   ```
 
 Grundsatz für alle Änderungen: **Nichts darf Programme beschädigen oder Daten gefährden.** Kein erzwungenes Beenden, kein Eingriff in fremde Prozesse, mit Admin-Rechten nur fest eingetragene Apple-Werkzeuge.
 
